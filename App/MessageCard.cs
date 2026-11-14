@@ -1,3 +1,7 @@
+// Copyright (c) 2026 c933103 and contributors.
+// SPDX-License-Identifier: LicenseRef-OREV-Community-1.0
+// See LICENSE, including Section 10 and Schedule A.
+
 namespace ExportViewer;
 
 // A fixed-width vertical card. Its height is the sum of its visible children;

@@ -40,7 +40,7 @@ jobs:
           $package = Join-Path $env:RUNNER_TEMP 'OpenRouter_Export_Viewer'
           New-Item -ItemType Directory -Path $package -Force | Out-Null
           Copy-Item 'out/win-x64/OpenRouter Export Viewer.exe' $package
-          Copy-Item README.md,VERIFICATION.md $package
+          Copy-Item README.md,VERIFICATION.md,LICENSE,NOTICE,LICENSING.md $package
           Copy-Item notices $package -Recurse
           git archive --format=zip --output="$env:RUNNER_TEMP/source.zip" HEAD
           Expand-Archive "$env:RUNNER_TEMP/source.zip" "$package/source"

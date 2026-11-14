@@ -1,6 +1,15 @@
-# OpenRouter Export Viewer 0.1.1
+# OpenRouter Export Viewer 0.1.2
 
 A portable Windows native application for OpenRouter `orpg.3.0` chat exports.
+
+## License
+
+Project-authored code is distributed under the **[OREV Community License 1.0](LICENSE)**.
+Its eligibility, territorial, recipient, permitted-use and redistribution
+conditions are part of the license grant. See [LICENSING.md](LICENSING.md) for
+scope, provenance and third-party treatment. This is a distinct restricted
+license; it is not the unmodified Apache License 2.0. Include LICENSE and NOTICE
+with copies and modifications. Separately licensed dependencies keep their own terms.
 
 ## Run
 
@@ -58,7 +67,7 @@ Image decoder checks are in `ImageTests`. This project includes the Linux native
 
 ## Verification limits
 
-The Windows x64 application was cross-compiled successfully with no compiler warnings. The JSON engine and image renderer were exercised on Linux. Version 0.1.1 replaces nested auto-sized message cards with an explicitly sized vertical layout after missing bodies were reported. Presentation checks now exercise the same text/reasoning/tool extraction path that the GUI uses. The native Windows GUI has not been launched successfully in this environment. A Windows GUI regression runner is included in `GuiTests`; it verifies nonempty, visible text controls, parent clipping, and collapse/expand heights, and produces a screenshot and geometry report.
+The Windows x64 application was cross-compiled successfully with no compiler warnings. The JSON engine and image renderer were exercised on Linux. Version 0.1.1 replaces nested auto-sized message cards with an explicitly sized vertical layout after missing bodies were reported. Presentation checks now exercise the same text/reasoning/tool extraction path that the GUI uses. The native Windows GUI regression passed on GitHub Actions in [run 43604013791](https://github.com/c933103/OREV/actions/runs/43604013791), checking four nonempty text/reasoning/tool controls, parent bounds, and collapse/expand heights. A Windows GUI regression runner is included in `GuiTests`; it verifies nonempty, visible text controls, parent clipping, and collapse/expand heights, and produces a screenshot and geometry report.
 
 This is an unsigned build. Third-party license notices are included in `notices`.
 

@@ -1,0 +1,419 @@
+OREV COMMUNITY LICENSE
+Version 1.0, 14 November 2026
+SPDX-License-Identifier: LicenseRef-OREV-Community-1.0
+
+Copyright (c) 2026 c933103 and contributors.
+
+This license is derived from and differs materially from the Apache License,
+Version 2.0. It is not the Apache License and is not endorsed by the Apache
+Software Foundation. The additional eligibility, territorial, recipient,
+redistribution and purpose conditions are operative parts of the grant.
+
+TERMS AND CONDITIONS FOR USE, REPRODUCTION AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 11 and Schedule A of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free
+      copyright license, subject to Section 10, to use, execute, reproduce,
+      prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in Sections 3 and 10) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License, and provided further that
+      Section 10 and Schedule A remain express conditions of the permissions
+      applicable to the Work and its protectable portions in Derivative Works.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   10. Eligibility and Permitted Exercise of Rights.
+
+       (a) All permissions in this License, including the permissions in
+           Sections 2 and 3, are expressly subject to this Section 10 and
+           Schedule A. They are conditions defining the scope of the grant,
+           not merely statements of preference or non-binding notices.
+           No permission is granted for a Restricted Exercise of Rights.
+
+       (b) "Exercise of Rights" means use, execution, reproduction, copying,
+           adaptation, modification, preparation of Derivative Works,
+           integration, incorporation, publication, display, performance,
+           distribution, redistribution, sublicensing, making available,
+           sale, provision of access, hosting or provision of a service
+           involving all or any protectable part of the Work or a
+           Derivative Work. It includes incorporation into another product,
+           service, dataset, training process or operational system.
+
+       (c) A "Restricted Exercise of Rights" is an Exercise of Rights:
+
+           (i)   from or within a Restricted Territory, or by means of a
+                 network, device, facility or intermediary located in or
+                 operated from a Restricted Territory;
+           (ii)  by, on behalf of, at the direction of, or for the Material
+                 Benefit of a Restricted Recipient, wherever located;
+           (iii) that supplies, licenses, transfers, makes available or
+                 provides the Work, a Derivative Work, or access to either
+                 to a Restricted Recipient, where You know, or reasonably
+                 ought to know from the facts reasonably available to You,
+                 the identity, capacity, intended recipient or purpose;
+           (iv)  that knowingly facilitates, conceals or circumvents a
+                 restriction in this Section or Schedule A, including
+                 through a proxy, intermediary, contractor, agent, front
+                 organisation, change of name or nominally separate entity.
+
+       (d) You must not authorise, procure, assist or purport to license a
+           Restricted Exercise of Rights. A subcontract, sublicense,
+           aggregation, modification, change of distribution medium or
+           commercial arrangement does not remove these conditions.
+           Reasonable inquiry is required where the proposed transaction
+           or use presents facts that would put a reasonable person on
+           notice of a Restricted Exercise of Rights; this provision does
+           not impose an obligation to conduct indiscriminate surveillance
+           of recipients or users.
+
+       (e) Any recipient's permission to exercise rights in the Work or its
+           protectable portions in a Derivative Work is subject to this
+           same License, including this Section and Schedule A. You must
+           include the complete License and Schedule A with every source
+           or binary redistribution and prominently identify this License
+           in any download or hosted-service terms. You must not offer
+           this Work or those portions under alternative terms that remove
+           or relax these conditions, or represent the Work as licensed
+           under an unmodified permissive or open-source license.
+
+       (f) Any permission granted to You under this License terminates
+           automatically upon a Restricted Exercise of Rights by You or a
+           material breach by You of paragraphs (d) or (e). Following
+           termination, You must cease activities requiring that permission.
+           Reinstatement requires the Licensor's express written consent.
+           Termination does not extinguish accrued claims or waive remedies
+           available under applicable law. It does not terminate an
+           independent recipient's permission while that recipient remains
+           eligible and complies with this License.
+
+   11. Scope, Interpretation and Essential Conditions.
+
+       (a) This License applies only to rights that the relevant Licensor
+           or Contributor owns or is authorised to license in the Work.
+           Third-party software, libraries, runtimes, assets and notices
+           identified as separately licensed remain governed by their own
+           terms. This License does not relicense those independent works,
+           restrict an independent grant from their right holders, or
+           license imported conversations or other user-owned content.
+
+       (b) Section 10 and Schedule A are essential limitations of the grant.
+           If a provision cannot lawfully be applied to a particular
+           Exercise of Rights, it shall be construed to give the greatest
+           lawful effect to that limitation; it shall not be construed as
+           granting a permission for a Restricted Exercise of Rights.
+           Invalidity of another provision does not enlarge the grant.
+           Nothing in this License limits an exception, limitation or other
+           independent right that applicable law does not permit the
+           Licensor to restrict, or promises that a particular remedy is
+           available in every jurisdiction.
+
+       (c) Schedule A is a fixed part of this version of this License. Its
+           reference to a website is provenance, not incorporation of future
+           amendments by reference. A later website change or license
+           version does not silently amend an existing copy of this License.
+           The application of an existing definition to current conduct,
+           effective control, an alias or a successor is not such an
+           amendment. Only an express written permission from the Licensor
+           may vary a restriction for a specified recipient and purpose.
+
+SCHEDULE A -- EXCLUDED RECIPIENTS, TERRITORIES AND PURPOSES
+
+A.1. Enumerated Authorities and Restricted Territories.
+
+For this License, each authority or organisation below is an "Enumerated
+Authority". A "Restricted Territory" is any territory in which an Enumerated
+Authority exercises effective governmental authority, de jure or de facto:
+
+  (a) the government of the Democratic People's Republic of Korea, the
+      Russian Federation, the Republic of Belarus, the Islamic Republic
+      of Iran, the Republic of Cuba or the Republic of Azerbaijan;
+
+  (b) the military authorities of Myanmar (Burma), including the Myanmar
+      Armed Forces (Tatmadaw), the State Administration Council, the State
+      Security and Peace Commission, and any military-appointed,
+      military-controlled or successor governmental administration;
+
+  (c) the Taliban, including the authorities operating as the "Islamic
+      Emirate of Afghanistan"; Hamas (Harakat al-Muqawama al-Islamiyya),
+      including the Izz al-Din al-Qassam Brigades; Islamic State, including
+      ISIS, ISIL and Da'esh; Al-Qaeda (Al-Qaida); Sudan's Rapid Support
+      Forces (RSF); or the Houthis (Ansar Allah), including their Supreme
+      Political Council;
+
+  (d) the de facto authorities operating as the "Pridnestrovian Moldavian
+      Republic" (Transnistria), the "Republic of Abkhazia", the "Republic
+      of South Ossetia" or "State of Alania", the "Donetsk People's
+      Republic" or the "Luhansk People's Republic"; or Russian-installed
+      occupation administrations in Crimea, Sevastopol, Donetsk, Luhansk,
+      Kherson or Zaporizhzhia.
+
+Naming an authority identifies an excluded recipient; it does not recognise
+a claim to sovereignty, statehood or territorial title. The territorial
+condition is limited to territories governed by the authorities specified
+in A.1. The separate organisational conditions below apply wherever the
+organisation or recipient operates.
+
+A.2. Excluded Controlling Organisations.
+
+A "Restricted Controlling Organisation" includes any political party,
+movement, military organisation, security apparatus, council, collective
+governing body or other organisation that directly or indirectly exercises
+decisive political, military, security or financial control over an
+Enumerated Authority, whether or not it holds formal governmental office
+or is legally separate from that authority.
+
+The following are also expressly excluded organisations, independently of
+whether a relationship to an Enumerated Authority needs to be established:
+
+  (a) the Chinese Communist Party (CCP), also called the Communist Party of
+      China or CPC;
+  (b) the Workers' Party of Korea;
+  (c) the Communist Party of Cuba;
+  (d) United Russia;
+  (e) the New Azerbaijan Party (Yeni Azərbaycan Partiyası / YAP);
+  (f) the Office of the Supreme Leader of Iran and the Islamic
+      Revolutionary Guard Corps (IRGC);
+  (g) the Presidential Administrations and Security Councils of Russia
+      and Belarus, and the Presidential Administration of Azerbaijan;
+  (h) the Myanmar military organisations and councils identified in A.1.
+
+A.3. Related Bodies, Controlled Entities and Representatives.
+
+The exclusions extend to any organ, agency, instrumentality, armed force,
+security or intelligence service, political bureau, committee, regional
+branch, military wing, state-owned or state-controlled entity, or other
+entity owned or controlled, directly or indirectly, by a recipient described
+in A.1, A.2 or A.4; and any person or entity acting for such a recipient.
+For this Schedule, control includes the practical power, whether through
+ownership, appointment, contract, financing or otherwise, to direct an
+entity's management, policy, operations or relevant use of the Work.
+
+Aliases, renamed bodies, successors, fronts and organisations operating
+under the direction or control of an excluded recipient are included.
+Legal separation, incorporation elsewhere, an intermediary, contractor,
+nominee or proxy does not remove the exclusion.
+
+A.4. Excluded Political Programmes and Organised Support.
+
+A "Restricted Political Organisation" is any political party, movement,
+association, network or other person or organisation whose official
+programme, authoritative public statements or organised activities seek to
+establish, preserve, restore, justify or materially extend an institutional
+arrangement in which:
+
+  (a) effective supreme governmental power is vested in an individual,
+      party, military, religious establishment or other body without
+      periodic, genuine, competitive elections and a practicable means
+      of peaceful replacement through pluralistic political participation;
+      or
+  (b) meaningful political competition or peaceful replacement of those
+      exercising governmental power is prevented by the systematic
+      suppression of opposition, independent adjudication, freedom of
+      expression, association or peaceful assembly.
+
+This definition also includes a person or organisation that knowingly
+provides material financial, operational, technical or organised
+promotional support to maintain, impose or expand such an arrangement,
+whether or not it currently holds governmental office or is established in
+a Restricted Territory. It includes organised support for a recipient
+identified in A.1 or A.2 when that support materially advances such a
+recipient's political programme, governing apparatus or capacity.
+
+A.5. Material Benefit and Restricted Recipients.
+
+A "Restricted Recipient" means an authority, organisation, body, person or
+entity within A.1, A.2, A.3 or A.4.
+
+"Material Benefit" means an identifiable economic, operational, military,
+security, surveillance, censorship, coercive, organisational, political or
+propagandistic advantage to a Restricted Recipient that is more than merely
+speculative or incidental to unrelated lawful activity. It includes
+product or service development, technical integration, revenue generation,
+expense avoidance, training or improving systems, expanding operational
+capacity, recruitment, fundraising, political mobilisation and organised
+promotional or legitimising activity, whether obtained directly or through
+another person or entity.
+
+Historical study, quotation, criticism, independent journalism, legal
+representation and documentation of abuses do not, by their subject matter
+alone, constitute organised support or Material Benefit. This clarification
+does not authorise access by an otherwise Restricted Recipient, a supply to
+such a recipient, a use for that recipient's actual Material Benefit, or an
+Exercise of Rights from a Restricted Territory.
+
+A recipient's place of birth, ancestry, ethnicity, religion or nationality
+alone does not establish organisational status under A.2 through A.4.
+The express territorial condition in Section 10(c)(i) is unaffected.
+
+A.6. Provenance.
+
+The enumerated territorial, organisational, control and intermediary
+conditions in A.1 through A.3 are adapted from the non-license Terms of Use
+published at https://10671435.xyz/#help-terms, as retrieved on
+14 November 2026. In this project they operate as express conditions of
+the copyright and patent permissions, together with Section 10 and the
+additional definitions in this Schedule. The website's separate source-code
+license and third-party data licenses do not govern this project's own code.
+
+END OF TERMS AND CONDITIONS
