@@ -1,0 +1,539 @@
+{
+  "version": "orpg.3.0",
+  "rooms": [
+    {
+      "title": "Synthetic room 1",
+      "characters": {
+        "model": {
+          "id": "model",
+          "model": "example/model",
+          "samplingParameters": {}
+        }
+      },
+      "messages": {
+        "m-0-0": {
+          "id": "m-0-0",
+          "type": "user",
+          "characterId": "USER",
+          "createdAt": "2026-11-14T00:00:00.000Z",
+          "items": [
+            {
+              "id": "i-0-0",
+              "type": "message"
+            }
+          ]
+        },
+        "m-0-1": {
+          "id": "m-0-1",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:01.000Z",
+          "items": [
+            {
+              "id": "i-0-1",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-0-0"
+        },
+        "m-0-2": {
+          "id": "m-0-2",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:02.000Z",
+          "items": [
+            {
+              "id": "i-0-2",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-0-0"
+        },
+        "m-0-3": {
+          "id": "m-0-3",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:03.000Z",
+          "items": [
+            {
+              "id": "i-0-3",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-0-0"
+        },
+        "m-0-4": {
+          "id": "m-0-4",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:04.000Z",
+          "items": [
+            {
+              "id": "i-0-4",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-0-0"
+        },
+        "m-0-5": {
+          "id": "m-0-5",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:05.000Z",
+          "items": [
+            {
+              "id": "i-0-5",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-0-0"
+        },
+        "m-0-6": {
+          "id": "m-0-6",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:06.000Z",
+          "items": [
+            {
+              "id": "i-0-6",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-0-0"
+        }
+      },
+      "items": {
+        "i-0-0": {
+          "id": "i-0-0",
+          "messageId": "m-0-0",
+          "data": {
+            "type": "message",
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-0-1": {
+          "id": "i-0-1",
+          "messageId": "m-0-1",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              },
+              {
+                "type": "output_image",
+                "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJklEQVR4nGN0aDjAQEvARFPTRy0YtWDUglELRi0YtWDUglELqAYAhKoBsM0RyvsAAAAASUVORK5CYII="
+              }
+            ]
+          }
+        },
+        "i-0-2": {
+          "id": "i-0-2",
+          "messageId": "m-0-2",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-0-3": {
+          "id": "i-0-3",
+          "messageId": "m-0-3",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-0-4": {
+          "id": "i-0-4",
+          "messageId": "m-0-4",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-0-5": {
+          "id": "i-0-5",
+          "messageId": "m-0-5",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-0-6": {
+          "id": "i-0-6",
+          "messageId": "m-0-6",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        }
+      },
+      "artifacts": {
+        "future": {
+          "unknown": true
+        }
+      },
+      "artifactFiles": {},
+      "artifactVersions": {},
+      "artifactFileContents": {}
+    },
+    {
+      "title": "Synthetic room 2",
+      "characters": {
+        "model": {
+          "id": "model",
+          "model": "example/model",
+          "samplingParameters": {}
+        }
+      },
+      "messages": {
+        "m-1-0": {
+          "id": "m-1-0",
+          "type": "user",
+          "characterId": "USER",
+          "createdAt": "2026-11-14T00:00:00.000Z",
+          "items": [
+            {
+              "id": "i-1-0",
+              "type": "message"
+            }
+          ]
+        },
+        "m-1-1": {
+          "id": "m-1-1",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:01.000Z",
+          "items": [
+            {
+              "id": "i-1-1",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-1-0"
+        },
+        "m-1-2": {
+          "id": "m-1-2",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:02.000Z",
+          "items": [
+            {
+              "id": "i-1-2",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-1-0"
+        },
+        "m-1-3": {
+          "id": "m-1-3",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:03.000Z",
+          "items": [
+            {
+              "id": "i-1-3",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-1-0"
+        }
+      },
+      "items": {
+        "i-1-0": {
+          "id": "i-1-0",
+          "messageId": "m-1-0",
+          "data": {
+            "type": "message",
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-1-1": {
+          "id": "i-1-1",
+          "messageId": "m-1-1",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              },
+              {
+                "type": "output_image",
+                "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJklEQVR4nGN0aDjAQEvARFPTRy0YtWDUglELRi0YtWDUglELqAYAhKoBsM0RyvsAAAAASUVORK5CYII="
+              }
+            ]
+          }
+        },
+        "i-1-2": {
+          "id": "i-1-2",
+          "messageId": "m-1-2",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-1-3": {
+          "id": "i-1-3",
+          "messageId": "m-1-3",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        }
+      },
+      "artifacts": {
+        "future": {
+          "unknown": true
+        }
+      },
+      "artifactFiles": {},
+      "artifactVersions": {},
+      "artifactFileContents": {}
+    },
+    {
+      "title": "Synthetic room 3",
+      "characters": {
+        "model": {
+          "id": "model",
+          "model": "example/model",
+          "samplingParameters": {}
+        }
+      },
+      "messages": {
+        "m-2-0": {
+          "id": "m-2-0",
+          "type": "user",
+          "characterId": "USER",
+          "createdAt": "2026-11-14T00:00:00.000Z",
+          "items": [
+            {
+              "id": "i-2-0",
+              "type": "message"
+            }
+          ]
+        },
+        "m-2-1": {
+          "id": "m-2-1",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:01.000Z",
+          "items": [
+            {
+              "id": "i-2-1",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-2-0"
+        },
+        "m-2-2": {
+          "id": "m-2-2",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:02.000Z",
+          "items": [
+            {
+              "id": "i-2-2",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-2-0"
+        },
+        "m-2-3": {
+          "id": "m-2-3",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:03.000Z",
+          "items": [
+            {
+              "id": "i-2-3",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-2-0"
+        },
+        "m-2-4": {
+          "id": "m-2-4",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:04.000Z",
+          "items": [
+            {
+              "id": "i-2-4",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-2-0"
+        },
+        "m-2-5": {
+          "id": "m-2-5",
+          "type": "assistant",
+          "characterId": "model",
+          "createdAt": "2026-11-14T00:00:05.000Z",
+          "items": [
+            {
+              "id": "i-2-5",
+              "type": "message"
+            }
+          ],
+          "parentMessageId": "m-2-0"
+        }
+      },
+      "items": {
+        "i-2-0": {
+          "id": "i-2-0",
+          "messageId": "m-2-0",
+          "data": {
+            "type": "message",
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-2-1": {
+          "id": "i-2-1",
+          "messageId": "m-2-1",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              },
+              {
+                "type": "output_image",
+                "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJklEQVR4nGN0aDjAQEvARFPTRy0YtWDUglELRi0YtWDUglELqAYAhKoBsM0RyvsAAAAASUVORK5CYII="
+              }
+            ]
+          }
+        },
+        "i-2-2": {
+          "id": "i-2-2",
+          "messageId": "m-2-2",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-2-3": {
+          "id": "i-2-3",
+          "messageId": "m-2-3",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-2-4": {
+          "id": "i-2-4",
+          "messageId": "m-2-4",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        },
+        "i-2-5": {
+          "id": "i-2-5",
+          "messageId": "m-2-5",
+          "data": {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "**Synthetic text** — Unicode 🚀\n\n```\nexample\n```"
+              }
+            ]
+          }
+        }
+      },
+      "artifacts": {
+        "future": {
+          "unknown": true
+        }
+      },
+      "artifactFiles": {},
+      "artifactVersions": {},
+      "artifactFileContents": {}
+    }
+  ]
+}

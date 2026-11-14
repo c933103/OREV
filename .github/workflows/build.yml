@@ -1,0 +1,84 @@
+name: Build, verify and release
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  data-and-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Check parsing, presentation, exports and 1 GiB payload
+        run: dotnet run --project Tests/Tests.csproj -- --large
+      - name: Check embedded image decoding
+        run: dotnet run --project ImageTests/ImageTests.csproj
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Verify native text, reasoning and tool controls
+        shell: pwsh
+        run: dotnet run --project GuiTests/GuiTests.csproj -- Tests/fixtures/presentation.json "$env:RUNNER_TEMP/viewer-gui"
+      - name: Build portable Windows application
+        shell: pwsh
+        run: ./build.ps1
+      - name: Package application, source and notices
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content App/App.csproj)).Project.PropertyGroup.Version
+          $package = Join-Path $env:RUNNER_TEMP 'OpenRouter_Export_Viewer'
+          New-Item -ItemType Directory -Path $package -Force | Out-Null
+          Copy-Item 'out/win-x64/OpenRouter Export Viewer.exe' $package
+          Copy-Item README.md,VERIFICATION.md $package
+          Copy-Item notices $package -Recurse
+          git archive --format=zip --output="$env:RUNNER_TEMP/source.zip" HEAD
+          Expand-Archive "$env:RUNNER_TEMP/source.zip" "$package/source"
+          $hash = (Get-FileHash "$package/OpenRouter Export Viewer.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  OpenRouter Export Viewer.exe" | Set-Content "$package/SHA256SUMS.txt"
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          Compress-Archive -Path $package -DestinationPath "release/OpenRouter_Export_Viewer_v${version}_Windows_x64.zip"
+      - name: Keep GUI screenshot and layout report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-gui-verification
+          path: ${{ runner.temp }}/viewer-gui.*
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-package
+          path: release/*.zip
+  release:
+    needs: [data-and-images, windows]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-release-package
+          path: release
+      - name: Publish versioned Windows download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version=$(python3 -c "import xml.etree.ElementTree as E; print(E.parse('App/App.csproj').findtext('.//Version'))")
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "Release v$version already exists; keeping its assets unchanged."
+            exit 0
+          fi
+          gh release create "v$version" release/*.zip --target "$GITHUB_SHA" --title "OpenRouter Export Viewer $version" --notes-file RELEASE_NOTES.md

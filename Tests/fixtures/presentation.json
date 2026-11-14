@@ -1,0 +1,110 @@
+{
+  "version": "orpg.3.0",
+  "title": "Visible content regression",
+  "characters": {
+    "model": {
+      "id": "model",
+      "model": "example/model"
+    }
+  },
+  "messages": {
+    "user": {
+      "id": "user",
+      "type": "user",
+      "characterId": "USER",
+      "createdAt": "2026-11-14T00:00:00Z",
+      "items": [
+        {
+          "id": "user-text",
+          "type": "message"
+        }
+      ]
+    },
+    "assistant": {
+      "id": "assistant",
+      "type": "assistant",
+      "characterId": "model",
+      "createdAt": "2026-11-14T00:00:00Z",
+      "items": [
+        {
+          "id": "reasoning",
+          "type": "message"
+        },
+        {
+          "id": "tool",
+          "type": "message"
+        },
+        {
+          "id": "answer",
+          "type": "message"
+        }
+      ],
+      "parentMessageId": "user"
+    }
+  },
+  "items": {
+    "user-text": {
+      "id": "user-text",
+      "messageId": "user",
+      "data": {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Visible user paragraph. **Bold test.**"
+          }
+        ]
+      }
+    },
+    "reasoning": {
+      "id": "reasoning",
+      "messageId": "assistant",
+      "data": {
+        "type": "reasoning",
+        "content": [
+          {
+            "type": "reasoning_text",
+            "text": "Visible reasoning body."
+          }
+        ],
+        "summary": []
+      }
+    },
+    "tool": {
+      "id": "tool",
+      "messageId": "assistant",
+      "data": {
+        "type": "openrouter:web_search",
+        "status": "completed",
+        "action": {
+          "query": "Visible tool search query.",
+          "sources": [
+            {
+              "url": "https://example.com/",
+              "title": "Visible tool source."
+            }
+          ]
+        }
+      }
+    },
+    "answer": {
+      "id": "answer",
+      "messageId": "assistant",
+      "data": {
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Visible assistant answer.\n\n## Heading\n\nA second paragraph."
+          }
+        ]
+      }
+    }
+  },
+  "artifacts": {},
+  "artifactFiles": {},
+  "artifactVersions": {},
+  "artifactFileContents": {}
+}
