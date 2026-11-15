@@ -1,5 +1,5 @@
 // Copyright (c) 2026 c933103 and contributors.
-// SPDX-License-Identifier: LicenseRef-OREV-Community-1.0
+// SPDX-License-Identifier: LicenseRef-OREV-Community-1.1
 // See LICENSE, including Section 10 and Schedule A.
 
 using ExportViewer;

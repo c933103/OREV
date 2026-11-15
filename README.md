@@ -1,15 +1,19 @@
-# OpenRouter Export Viewer 0.1.2
+# OpenRouter Export Viewer 0.1.3
 
 A portable Windows native application for OpenRouter `orpg.3.0` chat exports.
 
 ## License
 
-Project-authored code is distributed under the **[OREV Community License 1.0](LICENSE)**.
+Project-authored code is distributed under the **[OREV Community License 1.1](LICENSE)**.
 Its eligibility, territorial, recipient, permitted-use and redistribution
 conditions are part of the license grant. See [LICENSING.md](LICENSING.md) for
 scope, provenance and third-party treatment. This is a distinct restricted
 license; it is not the unmodified Apache License 2.0. Include LICENSE and NOTICE
 with copies and modifications. Separately licensed dependencies keep their own terms.
+Schedule A.1(a) expressly includes the government of the People's Republic of
+China; the territorial condition covers territories under its effective
+governmental authority. The separate CCP and controlled-entity exclusions apply
+wherever those recipients are located.
 
 ## Run
 

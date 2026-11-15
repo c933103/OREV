@@ -1,8 +1,8 @@
 # Licensing
 
 The project-authored parts of OpenRouter Export Viewer are licensed under the
-**OREV Community License 1.0**, in [LICENSE](LICENSE). The identifier is
-`LicenseRef-OREV-Community-1.0`.
+**OREV Community License 1.1**, in [LICENSE](LICENSE). The identifier is
+`LicenseRef-OREV-Community-1.1`.
 
 The license uses the copyright/patent grants, notice requirements, contribution
 terms, trademark reservation, warranty disclaimer and liability framework of
@@ -27,8 +27,13 @@ retrieved on 14 November 2026. The schedule is self-contained and is not changed
 by a later amendment of that website. A.4 adds a conduct-based definition of
 excluded political programmes and organised support; A.5 defines material
 benefit and distinguishes studying or criticising a subject from supporting it.
-The list's distinction between specified territorial restrictions and worldwide
-organisational restrictions is retained.
+Version 1.1 additionally lists the government of the People's Republic of China
+in A.1(a). Accordingly, the territorial condition applies wherever that government
+exercises effective governmental authority, de jure or de facto. The CCP and
+its controlled bodies remain excluded wherever located under A.2 and A.3.
+Version 1.0 excluded the CCP as an organisation but omitted the PRC government
+from A.1; the territorial addition is an express amendment, not a claim that
+the earlier list already contained it.
 
 Every redistribution must retain the complete license and schedule. A downstream
 license or change of name cannot remove the conditions from the project code.
@@ -47,7 +52,9 @@ Imported conversations and other user-owned content remain independently owned.
 Earlier versions of the repository did not contain this project license. This
 file does not purport to retroactively revoke an independent permission already
 validly received. Version 0.1.2 is the first packaged release to include this
-project license and its schedule as distribution files.
+project license and its schedule as distribution files. Version 0.1.3 carries
+license version 1.1; this amendment does not purport to retroactively amend
+copies already received under version 1.0.
 
 ## Drafting sources
 

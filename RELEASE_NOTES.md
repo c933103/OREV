@@ -1,9 +1,11 @@
-Portable Windows x64 build of OpenRouter Export Viewer 0.1.2. Extract the ZIP and launch **OpenRouter Export Viewer.exe**.
+Portable Windows x64 build of OpenRouter Export Viewer 0.1.3. Extract the ZIP and launch **OpenRouter Export Viewer.exe**.
 
-This release adds the **OREV Community License 1.0**. Read the included LICENSE, particularly Section 10 and Schedule A, before using, modifying, redistributing or integrating the project. The conditions apply to the project-authored code and do not relicense independent third-party components.
+This release corrects the territorial omission in **OREV Community License 1.0** by adopting **OREV Community License 1.1**.
 
-- Self-contained license schedule adapted from the 10671435.xyz service restrictions, with additional definitions of excluded political programmes, organised support and material benefit.
-- License and notice files included with the portable build and source.
-- Retains the 0.1.1 message display repair, embedded image rendering, metadata panel, large-file indexing and individual thread exports.
+- Schedule A.1(a) now expressly enumerates the government of the People's Republic of China. The territorial condition applies wherever it exercises effective governmental authority, de jure or de facto.
+- The worldwide restrictions on the CCP, controlled bodies, intermediaries and material benefit remain in place.
+- LICENSE, NOTICE, licensing documentation and project source identifiers are updated consistently in the portable package and bundled source.
+- Version 1.0 listed the CCP as an organisation but omitted the PRC government from the territorial list. Version 1.1 is an express amendment; it does not retroactively amend copies previously received under version 1.0.
+- Retains the existing viewer, image rendering and per-thread export behaviour.
 
 Publication is gated on data/image checks and native Windows GUI regression checks. OpenRouter's live importer remains unverified. This is an unsigned build.

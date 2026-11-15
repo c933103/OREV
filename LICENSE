@@ -1,6 +1,6 @@
 OREV COMMUNITY LICENSE
-Version 1.0, 14 November 2026
-SPDX-License-Identifier: LicenseRef-OREV-Community-1.0
+Version 1.1, 15 November 2026
+SPDX-License-Identifier: LicenseRef-OREV-Community-1.1
 
 Copyright (c) 2026 c933103 and contributors.
 
@@ -285,9 +285,10 @@ For this License, each authority or organisation below is an "Enumerated
 Authority". A "Restricted Territory" is any territory in which an Enumerated
 Authority exercises effective governmental authority, de jure or de facto:
 
-  (a) the government of the Democratic People's Republic of Korea, the
-      Russian Federation, the Republic of Belarus, the Islamic Republic
-      of Iran, the Republic of Cuba or the Republic of Azerbaijan;
+  (a) the government of the People's Republic of China, the Democratic
+      People's Republic of Korea, the Russian Federation, the Republic of
+      Belarus, the Islamic Republic of Iran, the Republic of Cuba or the
+      Republic of Azerbaijan;
 
   (b) the military authorities of Myanmar (Burma), including the Myanmar
       Armed Forces (Tatmadaw), the State Administration Council, the State
@@ -411,7 +412,12 @@ A.6. Provenance.
 The enumerated territorial, organisational, control and intermediary
 conditions in A.1 through A.3 are adapted from the non-license Terms of Use
 published at https://10671435.xyz/#help-terms, as retrieved on
-14 November 2026. In this project they operate as express conditions of
+14 November 2026. Version 1.1 additionally enumerates the government of
+the People's Republic of China in A.1(a), so that the territorial condition
+applies wherever that government exercises effective governmental authority,
+de jure or de facto. This is an express amendment to the enumerated list,
+rather than a claim that version 1.0 already contained that restriction.
+In this project these conditions operate as express conditions of
 the copyright and patent permissions, together with Section 10 and the
 additional definitions in this Schedule. The website's separate source-code
 license and third-party data licenses do not govern this project's own code.
