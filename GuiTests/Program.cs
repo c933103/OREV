@@ -73,7 +73,9 @@ internal static class Program
     {
         var rooms = (ListView)Get(form, "rooms")!;
         rooms.Items[0].Checked = true;
-        await (Task)Method("LoadFiles").Invoke(form, new object[] { new[] { second, third, first } })!;
+        string caseVariant = Path.Combine(Path.GetDirectoryName(first)!, "EXPORT.JSON");
+        string[] inputs = File.Exists(caseVariant) ? new[] { second, third, first, caseVariant } : new[] { second, third, first };
+        await (Task)Method("LoadFiles").Invoke(form, new object[] { inputs })!;
         Expect(rooms.Groups.Count == 3 && rooms.Items.Count == 3, "Later imports must accumulate and skip the same path");
         Expect(rooms.Items[0].Checked && rooms.Items[0].Selected, "Adding exports must preserve checks and selection");
         Expect(rooms.Groups[0].Header != rooms.Groups[1].Header &&

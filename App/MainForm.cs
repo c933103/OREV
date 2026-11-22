@@ -133,7 +133,9 @@ public sealed class MainForm : Form
         operation = token;
         progress.Value = 0;
         SetBusy(true, "Indexing exports…");
-        var knownPaths = sources.Select(source => source.Archive.Path).ToHashSet(StringComparer.Ordinal);
+        var knownPaths = sources.GroupBy(source => source.Archive.Path, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Select(source => source.Archive.Path).ToList(),
+                StringComparer.OrdinalIgnoreCase);
         var failures = new List<string>();
         int duplicates = 0;
         bool cancelled = false;
@@ -147,7 +149,8 @@ public sealed class MainForm : Form
                 try
                 {
                     string path = Path.GetFullPath(input);
-                    if (knownPaths.Contains(path)) { duplicates++; continue; }
+                    knownPaths.TryGetValue(path, out var similarPaths);
+                    if (similarPaths?.Contains(path, StringComparer.Ordinal) == true) { duplicates++; continue; }
                     string name = Path.GetFileName(path);
                     var reports = new Progress<int>(n =>
                     {
@@ -155,10 +158,17 @@ public sealed class MainForm : Form
                         progress.Value = (int)((index * 100L + n) / paths.Length);
                         state.Text = $"Indexing {name} ({index + 1:N0}/{paths.Length:N0}) — {n}%";
                     });
-                    Archive loaded = await Task.Run(() => Archive.Open(path, token.Token, reports));
+                    Archive? loaded = await Task.Run(() =>
+                    {
+                        // Windows storage can be case-sensitive, so casing alone cannot prove a duplicate.
+                        if (similarPaths?.Any(previous => WindowsFileIdentity.SameFile(previous, path)) == true) return null;
+                        return Archive.Open(path, token.Token, reports);
+                    });
+                    if (loaded == null) { duplicates++; continue; }
                     var folder = new ListViewGroup(name) { CollapsedState = ListViewGroupCollapsedState.Expanded };
                     sources.Add(new(loaded, folder, sources.Count));
-                    knownPaths.Add(path);
+                    if (similarPaths == null) knownPaths.Add(path, new() { path });
+                    else similarPaths.Add(path);
                     rooms.Groups.Add(folder);
                 }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException or ArgumentException or NotSupportedException or System.Text.Json.JsonException or System.Security.SecurityException)
