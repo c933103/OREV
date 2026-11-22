@@ -14,8 +14,8 @@ public sealed class MainForm : Form
     const int PageSize = 25;
     readonly Color canvas = Color.FromArgb(245, 246, 249), ink = Color.FromArgb(30, 35, 48);
     readonly ToolStrip tools = new() { GripStyle = ToolStripGripStyle.Hidden, Padding = new Padding(8), AutoSize = true };
-    readonly ToolStripButton open = new("Open file…"), export = new("Export selected…"), all = new("Check all"), none = new("Uncheck all"), metadata = new("Metadata") { CheckOnClick = true }, cancelButton = new("Cancel") { Visible = false };
-    readonly ListView rooms = new() { Dock = DockStyle.Fill, View = View.Details, CheckBoxes = true, MultiSelect = true, FullRowSelect = true, HideSelection = false, BorderStyle = BorderStyle.None, ShowItemToolTips = true };
+    readonly ToolStripButton open = new("Add exports…"), export = new("Export selected…"), all = new("Check all"), none = new("Uncheck all"), metadata = new("Metadata") { CheckOnClick = true }, cancelButton = new("Cancel") { Visible = false };
+    readonly ListView rooms = new() { Dock = DockStyle.Fill, View = View.Details, CheckBoxes = true, MultiSelect = true, FullRowSelect = true, HideSelection = false, BorderStyle = BorderStyle.None, ShowItemToolTips = true, ShowGroups = true };
     readonly TextBox search = new() { Dock = DockStyle.Top, PlaceholderText = "Filter conversations by title…", BorderStyle = BorderStyle.FixedSingle };
     readonly SplitContainer layout = new() { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1, SplitterWidth = 5 };
     readonly SplitContainer detail = new() { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel2, SplitterWidth = 5, Panel2Collapsed = true };
@@ -30,18 +30,21 @@ public sealed class MainForm : Form
     readonly StatusStrip status = new();
     readonly ToolStripStatusLabel state = new("Choose an OpenRouter export to begin") { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
     readonly ToolStripProgressBar progress = new() { Visible = false, Minimum = 0, Maximum = 100 };
-    readonly HashSet<Room> checks = new();
-    Archive? archive;
-    Room? active;
+    sealed record LoadedExport(Archive Archive, ListViewGroup Folder, int Order);
+    sealed record Conversation(LoadedExport Source, Room Room);
+
+    readonly List<LoadedExport> sources = new();
+    readonly HashSet<Conversation> checks = new();
+    Conversation? current;
+    Room? active => current?.Room;
     CancellationTokenSource? operation;
     bool busy, filtering;
     CancellationTokenSource? previewCancel;
     readonly List<(JNode Node, PictureBox Picture, Label Label, Archive Archive)> imageQueue = new();
     int page;
-    readonly string? initialPath;
-    public MainForm(string? path)
+    public MainForm(string[] initialPaths)
     {
-        initialPath = path; Text = "OpenRouter Export Viewer";
+        Text = "OpenRouter Export Viewer";
         StartPosition = FormStartPosition.CenterScreen; Size = new(1320, 900); MinimumSize = new(920, 620);
         Font = new("Segoe UI", 10); ForeColor = ink; BackColor = canvas;
         tools.Items.AddRange(new ToolStripItem[] { open, new ToolStripSeparator(), all, none, export, new ToolStripSeparator(), metadata, cancelButton });
@@ -55,41 +58,67 @@ public sealed class MainForm : Form
         Controls.Add(layout); Controls.Add(tools); Controls.Add(status);
         tools.Dock = DockStyle.Top; status.Dock = DockStyle.Bottom;
         layout.SplitterDistance = 320;
-        open.Click += async (_, _) => await PickFile();
+        open.Click += async (_, _) => await PickFiles();
         export.Click += async (_, _) => await ExportSelected();
         all.Click += (_, _) => SetChecks(true); none.Click += (_, _) => SetChecks(false);
         cancelButton.Click += (_, _) => operation?.Cancel();
         metadata.CheckedChanged += (_, _) => { detail.Panel2Collapsed = !metadata.Checked; if (metadata.Checked) detail.SplitterDistance = Math.Max(250, detail.Width - 330); };
         search.TextChanged += (_, _) => Filter();
-        rooms.ItemChecked += (_, e) => { if (filtering || e.Item.Tag is not Room r) return; if (e.Item.Checked) checks.Add(r); else checks.Remove(r); UpdateExport(); };
-        rooms.SelectedIndexChanged += (_, _) => { if (!busy && rooms.SelectedItems.Count > 0 && rooms.SelectedItems[0].Tag is Room r && active != r) { active = r; page = 0; RenderRoom(); } UpdateExport(); };
+        rooms.ItemChecked += (_, e) =>
+        {
+            if (filtering || e.Item.Tag is not Conversation conversation) return;
+            if (e.Item.Checked) checks.Add(conversation); else checks.Remove(conversation);
+            UpdateExport();
+        };
+        rooms.SelectedIndexChanged += (_, _) =>
+        {
+            if (!busy && !filtering && rooms.SelectedItems.Count > 0 &&
+                rooms.SelectedItems[0].Tag is Conversation conversation && current != conversation)
+            {
+                current = conversation;
+                page = 0;
+                RenderRoom();
+            }
+            UpdateExport();
+        };
         rooms.KeyDown += (_, e) => { if (e.Control && e.KeyCode == Keys.A) { foreach (ListViewItem item in rooms.Items) item.Selected = true; e.SuppressKeyPress = true; } };
         previous.Click += (_, _) => { if (page > 0) { page--; RenderRoom(); } };
         next.Click += (_, _) => { if (active != null && (page + 1) * PageSize < active.Thread.Count) { page++; RenderRoom(); } };
         feed.SizeChanged += (_, _) => ResizeCards();
         heading.Click += (_, _) => { if (active != null) SetMetadata("Conversation metadata", active.Node); };
         metaTree.BeforeExpand += (_, e) => { if (e.Node != null) PopulateMetadata(e.Node); };
-        metaTree.AfterSelect += (_, e) => { if (archive != null && e.Node?.Tag is JNode node) metaValue.Text = archive.Text(node, 65536); };
-        Shown += async (_, _) => { if (initialPath != null) await LoadFile(initialPath); else await PickFile(); };
+        metaTree.AfterSelect += (_, e) =>
+        {
+            if (current is { } conversation && e.Node?.Tag is JNode node)
+                metaValue.Text = conversation.Source.Archive.Text(node, 65536);
+        };
+        Shown += async (_, _) =>
+        {
+            if (initialPaths.Length > 0) await LoadFiles(initialPaths); else await PickFiles();
+        };
         FormClosing += (_, e) => { if (busy) { operation?.Cancel(); e.Cancel = true; state.Text = "Cancelling… close the window again when complete."; } };
-        FormClosed += (_, _) => { previewCancel?.Cancel(); archive?.Dispose(); };
+        FormClosed += (_, _) =>
+        {
+            previewCancel?.Cancel();
+            foreach (var source in sources) source.Archive.Dispose();
+        };
         AllowDrop = true;
         DragEnter += (_, e) => { if (!busy && e.Data?.GetDataPresent(DataFormats.FileDrop) == true) e.Effect = DragDropEffects.Copy; };
-        DragDrop += async (_, e) => { if (e.Data?.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0) await LoadFile(files[0]); };
+        DragDrop += async (_, e) => { if (e.Data?.GetData(DataFormats.FileDrop) is string[] files) await LoadFiles(files); };
         ShowWelcome(); UpdateExport();
     }
     void ShowWelcome()
     {
         ClearFeed(); heading.Text = "OpenRouter Export Viewer";
-        var label = new Label { Text = "Open an OpenRouter JSON export\n\nBrowse conversations and export selected threads as individual JSON files.", AutoSize = true, MaximumSize = new(650, 0), Margin = new(25), Font = new(Font.FontFamily, 14) };
-        var choose = new Button { Text = "Choose file…", AutoSize = true, Margin = new(25, 0, 0, 0) };
-        choose.Click += async (_, _) => await PickFile(); feed.Controls.Add(label); feed.Controls.Add(choose);
+        var label = new Label { Text = "Open OpenRouter JSON exports\n\nBrowse conversations by source file and export selected threads as individual JSON files.", AutoSize = true, MaximumSize = new(650, 0), Margin = new(25), Font = new(Font.FontFamily, 14) };
+        var choose = new Button { Text = "Choose exports…", AutoSize = true, Margin = new(25, 0, 0, 0) };
+        choose.Click += async (_, _) => await PickFiles(); feed.Controls.Add(label); feed.Controls.Add(choose);
     }
-    async Task PickFile()
+    async Task PickFiles()
     {
         if (busy) return;
-        using var picker = new OpenFileDialog { Filter = "OpenRouter export (*.json)|*.json|All files (*.*)|*.*", Title = "OpenRouter Export Viewer — choose an export", CheckFileExists = true };
-        if (picker.ShowDialog(this) == DialogResult.OK) await LoadFile(picker.FileName);
+        using var picker = new OpenFileDialog { Filter = "OpenRouter export (*.json)|*.json|All files (*.*)|*.*", Title = "OpenRouter Export Viewer — choose exports", CheckFileExists = true, Multiselect = true };
+        if (picker.ShowDialog(this) == DialogResult.OK) await LoadFiles(picker.FileNames);
     }
     void SetBusy(bool value, string? text)
     {
@@ -97,34 +126,109 @@ public sealed class MainForm : Form
         cancelButton.Visible = progress.Visible = value; previous.Enabled = !value && active != null && page > 0; next.Enabled = !value && active != null && (page + 1) * PageSize < active.Thread.Count;
         state.Text = text ?? ""; UpdateExport();
     }
-    async Task LoadFile(string path)
+    async Task LoadFiles(string[] paths)
     {
-        if (busy) return;
-        using var token = new CancellationTokenSource(); operation = token; progress.Value = 0;
-        SetBusy(true, "Indexing file…");
+        if (busy || paths.Length == 0) return;
+        using var token = new CancellationTokenSource();
+        operation = token;
+        progress.Value = 0;
+        SetBusy(true, "Indexing exports…");
+        var knownPaths = sources.Select(source => source.Archive.Path).ToHashSet(StringComparer.Ordinal);
+        var failures = new List<string>();
+        int duplicates = 0;
+        bool cancelled = false;
         try
         {
-            var reports = new Progress<int>(n => { progress.Value = n; state.Text = $"Indexing {System.IO.Path.GetFileName(path)} — {n}%"; });
-            Archive loaded = await Task.Run(() => Archive.Open(path, token.Token, reports));
-            previewCancel?.Cancel(); archive?.Dispose(); archive = loaded; checks.Clear(); active = null; page = 0; search.Clear(); Filter();
-            active = archive.Rooms.FirstOrDefault(); RenderRoom();
-            if (rooms.Items.Count > 0) rooms.Items[0].Selected = true;
-            state.Text = $"{archive.Rooms.Count:N0} conversations • {archive.Size / 1048576.0:N1} MiB • {System.IO.Path.GetFileName(path)}";
+            for (int i = 0; i < paths.Length; i++)
+            {
+                token.Token.ThrowIfCancellationRequested();
+                int index = i;
+                string input = paths[index];
+                try
+                {
+                    string path = Path.GetFullPath(input);
+                    if (knownPaths.Contains(path)) { duplicates++; continue; }
+                    string name = Path.GetFileName(path);
+                    var reports = new Progress<int>(n =>
+                    {
+                        if (operation != token) return;
+                        progress.Value = (int)((index * 100L + n) / paths.Length);
+                        state.Text = $"Indexing {name} ({index + 1:N0}/{paths.Length:N0}) — {n}%";
+                    });
+                    Archive loaded = await Task.Run(() => Archive.Open(path, token.Token, reports));
+                    var folder = new ListViewGroup(name) { CollapsedState = ListViewGroupCollapsedState.Expanded };
+                    sources.Add(new(loaded, folder, sources.Count));
+                    knownPaths.Add(path);
+                    rooms.Groups.Add(folder);
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException or ArgumentException or NotSupportedException or System.Text.Json.JsonException or System.Security.SecurityException)
+                {
+                    failures.Add($"{input}\n{e.Message}");
+                }
+            }
         }
-        catch (OperationCanceledException) { state.Text = "Loading cancelled. The previous file remains open."; }
-        catch (Exception e) { Error("Could not open export", e); }
-        finally { operation = null; SetBusy(false, state.Text); }
+        catch (OperationCanceledException) { cancelled = true; }
+        finally
+        {
+            foreach (var group in sources.GroupBy(source => Path.GetFileName(source.Archive.Path), StringComparer.OrdinalIgnoreCase))
+            {
+                int number = 0;
+                bool sharedName = group.Count() > 1;
+                foreach (var source in group)
+                {
+                    string header = sharedName
+                        ? $"[{++number}] {Path.GetFileName(source.Archive.Path)} — {Path.GetDirectoryName(source.Archive.Path)}"
+                        : Path.GetFileName(source.Archive.Path);
+                    if (source.Folder.Header != header) source.Folder.Header = header;
+                }
+            }
+            Filter();
+            if (current == null && rooms.Items.Count > 0)
+            {
+                current = (Conversation)rooms.Items[0].Tag!;
+                rooms.Items[0].Selected = true;
+                RenderRoom();
+            }
+            string summary = $"{sources.Sum(s => (long)s.Archive.Rooms.Count):N0} conversations in {sources.Count:N0} exports";
+            if (duplicates > 0) summary += $" • {duplicates:N0} already open";
+            if (failures.Count > 0) summary += $" • {failures.Count:N0} failed";
+            if (cancelled) summary += " • Loading cancelled";
+            operation = null;
+            SetBusy(false, summary);
+        }
+        if (failures.Count > 0)
+        {
+            string details = string.Join("\n\n", failures.Take(5));
+            if (failures.Count > 5) details += $"\n\nAnd {failures.Count - 5:N0} other files.";
+            MessageBox.Show(this, details, "Could not open some exports", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
     void Filter()
     {
-        filtering = true; rooms.BeginUpdate(); rooms.Items.Clear();
-        foreach (var r in archive?.Rooms ?? new())
+        var selected = rooms.SelectedItems.Cast<ListViewItem>().Select(item => item.Tag).ToHashSet();
+        filtering = true;
+        rooms.BeginUpdate();
+        try
         {
-            if (!r.Title.Contains(search.Text, StringComparison.OrdinalIgnoreCase)) continue;
-            var item = new ListViewItem(r.Title) { Tag = r, Checked = checks.Contains(r), ToolTipText = r.Title };
-            item.SubItems.Add(r.Thread.Count.ToString()); rooms.Items.Add(item);
+            rooms.Items.Clear();
+            foreach (var source in sources)
+            foreach (var room in source.Archive.Rooms)
+            {
+                if (!room.Title.Contains(search.Text, StringComparison.OrdinalIgnoreCase)) continue;
+                var conversation = new Conversation(source, room);
+                var item = new ListViewItem(room.Title, source.Folder)
+                {
+                    Tag = conversation,
+                    Checked = checks.Contains(conversation),
+                    ToolTipText = $"{room.Title}\n{source.Archive.Path}"
+                };
+                item.SubItems.Add(room.Thread.Count.ToString());
+                rooms.Items.Add(item);
+                item.Selected = selected.Contains(conversation);
+            }
         }
-        rooms.EndUpdate(); filtering = false; UpdateExport();
+        finally { rooms.EndUpdate(); filtering = false; }
+        UpdateExport();
     }
     void SetChecks(bool value)
     {
@@ -134,12 +238,29 @@ public sealed class MainForm : Form
     {
         int count = checks.Count > 0 ? checks.Count : rooms.SelectedItems.Count;
         export.Text = checks.Count > 0 ? $"Export checked ({count})…" : $"Export selected ({count})…";
-        export.Enabled = !busy && archive != null && count > 0;
+        export.Enabled = !busy && count > 0;
     }
+    Conversation[] ChosenConversations() => checks.Count > 0
+        ? checks.OrderBy(c => c.Source.Order).ThenBy(c => c.Room.Number).ToArray()
+        : rooms.SelectedItems.Cast<ListViewItem>().Select(i => (Conversation)i.Tag!).ToArray();
+
+    static void ExportConversation(Conversation conversation, string destination, CancellationToken token)
+    {
+        string stem = Path.GetFileNameWithoutExtension(Archive.FileName(conversation.Room));
+        string path = Path.Combine(destination, stem + ".json");
+        int suffix = 2;
+        while (File.Exists(path))
+        {
+            token.ThrowIfCancellationRequested();
+            path = Path.Combine(destination, $"{stem} ({suffix++}).json");
+        }
+        conversation.Source.Archive.Export(conversation.Room, path, token);
+    }
+
     async Task ExportSelected()
     {
-        if (archive == null || busy) return;
-        var chosen = checks.Count > 0 ? checks.OrderBy(r => r.Number).ToArray() : rooms.SelectedItems.Cast<ListViewItem>().Select(i => (Room)i.Tag!).ToArray();
+        if (busy) return;
+        var chosen = ChosenConversations();
         if (chosen.Length == 0) return;
         using var folder = new FolderBrowserDialog { Description = "Choose a folder for the individual conversation JSON files", UseDescriptionForTitle = true };
         if (folder.ShowDialog(this) != DialogResult.OK) return;
@@ -149,16 +270,14 @@ public sealed class MainForm : Form
         try
         {
             var reports = new Progress<int>(n => { progress.Value = n * 100 / chosen.Length; state.Text = $"Exported {n} of {chosen.Length} conversations"; });
-            var current = archive;
             await Task.Run(() =>
             {
-                foreach (var room in chosen)
+                foreach (var conversation in chosen)
                 {
                     token.Token.ThrowIfCancellationRequested();
-                    string stem = System.IO.Path.GetFileNameWithoutExtension(Archive.FileName(room));
-                    string path = System.IO.Path.Combine(destination, stem + ".json"); int suffix = 2;
-                    while (File.Exists(path)) path = System.IO.Path.Combine(destination, $"{stem} ({suffix++}).json");
-                    current.Export(room, path, token.Token); Interlocked.Increment(ref completed); ((IProgress<int>)reports).Report(completed);
+                    ExportConversation(conversation, destination, token.Token);
+                    Interlocked.Increment(ref completed);
+                    ((IProgress<int>)reports).Report(completed);
                 }
             });
             state.Text = $"Exported {completed} individual conversation files to {destination}";
@@ -177,7 +296,7 @@ public sealed class MainForm : Form
     void RenderRoom()
     {
         ClearFeed();
-        if (archive == null || active == null) { ShowWelcome(); previous.Enabled = next.Enabled = false; pageLabel.Text = ""; return; }
+        if (current == null || active == null) { ShowWelcome(); previous.Enabled = next.Enabled = false; pageLabel.Text = ""; return; }
         heading.Text = active.Title + $"\n{active.Thread.Count:N0} messages • {active.Node.Length / 1048576.0:N2} MiB" + (active.BrokenLinks > 0 ? $" • {active.BrokenLinks} missing/cyclic parent links (all messages shown)" : "");
         heading.Font = new(Font.FontFamily, 11, FontStyle.Bold);
         pageLabel.Text = $"Page {page + 1} / {Math.Max(1, (active.Thread.Count + PageSize - 1) / PageSize)}";
@@ -208,8 +327,8 @@ public sealed class MainForm : Form
     };
     void AddMessage(ThreadEntry entry)
     {
-        if (archive == null || active == null) return;
-        var a = archive; var room = active; var m = entry.Message;
+        if (current is not { } conversation) return;
+        var a = conversation.Source.Archive; var room = conversation.Room; var m = entry.Message;
         var card = Card(entry.Depth);
         string role = m.Role == "user" ? "You" : m.Model.Length > 0 ? m.Model : m.Role;
         var title = new Label { Text = role + (entry.Depth > 0 ? $"   ↳ reply · depth {entry.Depth}" : ""), AutoSize = true, Font = new(Font.FontFamily, 10, FontStyle.Bold), ForeColor = m.Role == "user" ? Color.FromArgb(70, 80, 175) : ink, Margin = new(0, 0, 0, 6) };
@@ -239,7 +358,7 @@ public sealed class MainForm : Form
                 if (type is not ("image_generation_call" or "openrouter:image_generation"))
                     AddExpandable(card, "Show tool / item content", () => MessageContent.ToolDetails(a, data));
             }
-            foreach (var attachment in a.Attachments(data)) AddAttachment(card, attachment.Node, attachment.Mime, itemNumber);
+            foreach (var attachment in a.Attachments(data)) AddAttachment(card, a, attachment.Node, attachment.Mime, itemNumber);
             // Remote references are links only; opening a file never makes a network request.
             foreach (var field in a.Descendants(data).Where(n => n.Fields != null))
             {
@@ -299,7 +418,7 @@ public sealed class MainForm : Form
     }
     TreeNode MetadataNode(string key, JNode node)
     {
-        string value = node.Fields != null ? $"{{{node.Fields.Count}}}" : node.Values != null ? $"[{node.Values.Count}]" : node.Kind == '"' && node.Length > 256 ? $"string · {node.Length:N0} bytes" : archive?.Text(node, 150) ?? "";
+        string value = node.Fields != null ? $"{{{node.Fields.Count}}}" : node.Values != null ? $"[{node.Values.Count}]" : node.Kind == '"' && node.Length > 256 ? $"string · {node.Length:N0} bytes" : current?.Source.Archive.Text(node, 150) ?? "";
         var tree = new TreeNode(key + " : " + value.Replace('\n', ' ').Replace('\r', ' ')) { Tag = node };
         if (node.Fields?.Count > 0 || node.Values?.Count > 0) tree.Nodes.Add("Loading…");
         return tree;
@@ -321,9 +440,8 @@ public sealed class MainForm : Form
             more.Nodes.Add("Loading…"); tree.Nodes.Add(more);
         }
     }
-    void AddAttachment(MessageCard card, JNode node, string mime, int number)
+    void AddAttachment(MessageCard card, Archive a, JNode node, string mime, int number)
     {
-        var a = archive!;
         string ext = mime.ToLowerInvariant() switch { "image/png" => ".png", "image/jpeg" => ".jpg", "image/gif" => ".gif", "image/webp" => ".webp", "image/avif" => ".avif", "application/pdf" => ".pdf", "audio/mpeg" => ".mp3", "audio/wav" => ".wav", "video/mp4" => ".mp4", _ => ".bin" };
         var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, Margin = new(0, 8, 0, 4) };
         row.Controls.Add(new Label { Text = $"{mime} • ~{node.Length * 0.75 / 1048576:N2} MiB", AutoSize = true, Margin = new(0, 8, 10, 0) });
@@ -333,8 +451,13 @@ public sealed class MainForm : Form
             if (busy) return;
             using var dialog = new SaveFileDialog { FileName = $"attachment-{number}{ext}", OverwritePrompt = true };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
-            if (string.Equals(System.IO.Path.GetFullPath(dialog.FileName), System.IO.Path.GetFullPath(a.Path), StringComparison.OrdinalIgnoreCase)) { MessageBox.Show(this, "Choose a different path from the source export.", Text); return; }
-            string path = dialog.FileName, temp = path + "." + Guid.NewGuid().ToString("N") + ".partial";
+            string path = Path.GetFullPath(dialog.FileName);
+            if (sources.Any(source => string.Equals(path, source.Archive.Path, StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show(this, "Choose a path other than an open export.", Text);
+                return;
+            }
+            string temp = path + "." + Guid.NewGuid().ToString("N") + ".partial";
             using var token = new CancellationTokenSource(); operation = token; SetBusy(true, "Saving attachment…"); progress.Style = ProgressBarStyle.Marquee;
             try
             {

@@ -181,6 +181,8 @@ public sealed class Archive : IDisposable
     }
     public void Export(Room room, string destination, CancellationToken cancel = default)
     {
+        if ((uint)room.Number >= (uint)Rooms.Count || !ReferenceEquals(Rooms[room.Number], room))
+            throw new ArgumentException("The conversation belongs to a different export.", nameof(room));
         // CreateNew + atomic rename: never replace an existing file or leave a half-written JSON.
         string temp = destination + "." + Guid.NewGuid().ToString("N") + ".partial";
         try
