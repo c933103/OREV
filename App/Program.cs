@@ -10,6 +10,6 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "OpenRouter Export Viewer", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        Application.Run(new MainForm(args.FirstOrDefault()));
+        Application.Run(new MainForm(args));
     }
 }

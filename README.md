@@ -1,4 +1,4 @@
-# OpenRouter Export Viewer 0.1.3
+# OpenRouter Export Viewer 0.1.4
 
 A portable Windows native application for OpenRouter `orpg.3.0` chat exports.
 
@@ -21,11 +21,12 @@ Download the Windows x64 ZIP from [Releases](https://github.com/c933103/OREV/rel
 
 Extract the ZIP and double-click **OpenRouter Export Viewer.exe**. No installer, Python, browser, API key, or separately installed .NET runtime is needed. This build targets **Windows 10/11, x64**. The single executable extracts its bundled runtime/native libraries into the normal .NET temporary cache on first launch.
 
-The native file picker opens immediately. Choose a bulk or individual JSON export. Cancelling the picker leaves a Choose file button. Files can also be opened from the toolbar, dragged onto the app, or passed on its command line.
+The native file picker opens immediately. Choose one or more bulk or individual JSON exports. Use **Add exports** later, drag files onto the window, or pass multiple JSON paths on the command line. New files join the exports already open in that window. If an import fails or is cancelled, the files already loaded remain available.
 
 ## Browse
 
-- The left pane lists conversations and message counts. Filter by title.
+- The left pane groups conversations into collapsible folders, one per source JSON file. When filenames match, the folder headings use distinct numbers and show their directories. Hover over a conversation to see its full source path. Opening the same full path again skips the duplicate.
+- Filter conversations across folders by title.
 - Click a conversation to read its messages. Parent links determine the reply order and indentation; model names identify parallel replies. “Go to parent” navigates to the parent message, including across pages.
 - Messages use native controls with basic Markdown formatting. Text, reasoning and tool bodies are visible by default. Reasoning/tool sections can be collapsed. Nested tool queries, results, source titles, URLs and errors are rendered as readable fields. HTML is never executed.
 - Embedded base64 raster images render **automatically inline**, in a background queue. PNG, JPEG, GIF's first frame, WebP and other formats supported by the bundled Skia decoder are supported. Base64 is streamed to a temporary file, then a bounded preview is decoded; the original stays unchanged. Temporary decoded files use delete-on-close.
@@ -36,7 +37,7 @@ The native file picker opens immediately. Choose a bulk or individual JSON expor
 
 ## Export
 
-Check several conversations and click **Export checked**. Alternatively, select rows with Ctrl/Shift and use **Export selected** when no boxes are checked. Check all applies to the current filtered list; previous checks remain selected across filtering.
+Check conversations across any of the open folders and click **Export checked**. Alternatively, select rows with Ctrl/Shift and use **Export selected** when no boxes are checked. Check all applies to the current filtered list, including collapsed folders. Previous checks remain selected across filtering and when adding exports.
 
 Choose an output folder. Each selected room becomes an individual JSON file with `version: "orpg.3.0"`, `title`, `characters`, `messages`, `items`, all artifact maps, and any additional room fields. Unknown fields, model catalog snapshots, IDs, parent links, reasoning, tools and embedded attachment strings remain intact. Existing filenames receive numeric suffixes. Incomplete output files are removed after cancellation or error; already completed files remain.
 
@@ -46,7 +47,7 @@ This transformation matches the single-room export structure. Actual OpenRouter 
 
 The scanner indexes byte ranges instead of allocating base64 strings or a DOM of all text. Export copies the original JSON values directly from the source file. No network client, telemetry, API integration or automatic remote media fetching is included. Keep the original JSON available while browsing: the app reads values from it on demand and holds it read-locked on Windows.
 
-Index memory depends on the number of JSON fields and messages, rather than the byte size of attachment strings. JSON nesting is limited to 128 levels and the index to eight million nodes. The parser supports UTF-8 JSON and an optional UTF-8 BOM.
+Index memory depends on the total number of JSON fields and messages across open files. JSON nesting is limited to 128 levels and the index to eight million nodes per file. The parser supports UTF-8 JSON and an optional UTF-8 BOM.
 
 ## Build from source
 
