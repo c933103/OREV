@@ -26,7 +26,24 @@ internal static class Program
         var thirdRoom = secondRoom.DeepClone();
         thirdRoom["title"] = "Bulk folder conversation";
         File.WriteAllText(third, new JsonObject { ["version"] = "orpg.3.0", ["rooms"] = new JsonArray(thirdRoom) }.ToJsonString());
-        using var form = new MainForm(new[] { first });
+        var decisions = new Queue<(string Path, bool Refresh)>();
+        TaskDialogButton ShowWarning(IWin32Window owner, TaskDialogPage dialog)
+        {
+            Expect(decisions.TryDequeue(out var decision), "Unexpected warning for an unchanged or new export");
+            string text = dialog.Text ?? "";
+            Expect(dialog.Heading == "This export has changed" && dialog.Icon == TaskDialogIcon.Warning &&
+                text.Contains(decision.Path, StringComparison.Ordinal) &&
+                text.Contains("1 checked conversation", StringComparison.Ordinal),
+                "Warning must identify the changed path and the number of checks that would be cleared");
+            var keep = dialog.Buttons.Single(button => button.Text == "Keep current version");
+            var refresh = dialog.Buttons.Single(button => button.Text == "Refresh folder");
+            Expect(dialog.DefaultButton == keep && dialog.AllowCancel, "Keeping the current version must be the default");
+            dialog.Created += (_, _) => ((Control)owner).BeginInvoke((Action)(() =>
+                (decision.Refresh ? refresh : keep).PerformClick()));
+            return TaskDialog.ShowDialog(owner, dialog);
+        }
+        using var form = (MainForm)Activator.CreateInstance(typeof(MainForm), BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null, args: new object[] { new[] { first }, (Func<IWin32Window, TaskDialogPage, TaskDialogButton>)ShowWarning }, culture: null)!;
         form.Shown += async (_, _) =>
         {
             try
@@ -61,7 +78,8 @@ internal static class Program
                 }
                 Console.WriteLine("PASS: " + boxes.Length + " nonempty native text controls visible without parent clipping");
                 await CheckSourceFolders(form, first, second, third, scratch);
-                await CheckSamePathRefresh(form, first, second, scratch);
+                await CheckSamePathRefresh(form, first, second, scratch, decisions);
+                Expect(decisions.Count == 0, "Every changed export must show its warning");
                 File.WriteAllText(prefix + ".result", "PASS");
             }
             catch (Exception e) { Console.WriteLine(e.ToString()); Environment.ExitCode = 1; }
@@ -116,7 +134,8 @@ internal static class Program
             Expect(body.Any(output => JsonNode.DeepEquals(room, output)), "Export must preserve the correct source's room fields");
         Console.WriteLine("PASS: accumulated export folders, duplicate filenames, source-specific display and cross-folder exports");
     }
-    static async Task CheckSamePathRefresh(MainForm form, string first, string second, string scratch)
+    static async Task CheckSamePathRefresh(MainForm form, string first, string second, string scratch,
+        Queue<(string Path, bool Refresh)> decisions)
     {
         var rooms = (ListView)Get(form, "rooms")!;
         var feed = (FlowLayoutPanel)Get(form, "feed")!;
@@ -131,6 +150,14 @@ internal static class Program
         File.SetLastWriteTimeUtc(second, stamp);
         Expect(new FileInfo(second).Length == size && File.GetLastWriteTimeUtc(second) == stamp,
             "The in-place edit must preserve length and timestamp to test content-based refresh");
+        decisions.Enqueue((second, false));
+        await (Task)Method("LoadFiles").Invoke(form, new object[] { new[] { second } })!;
+        Expect(rooms.Groups.Count == 3 && rooms.Groups[1] == folder && rooms.Items[1].Selected && rooms.Items[1].Checked,
+            "Declining the warning must retain the folder, current selection and check");
+        Expect(Descendants(feed).OfType<RichTextBox>().Any(box => box.Text.Trim() == "Message from the second export"),
+            "Declining the warning must keep displaying the previous snapshot");
+
+        decisions.Enqueue((second, true));
         await (Task)Method("LoadFiles").Invoke(form, new object[] { new[] { second } })!;
         Expect(rooms.Groups.Count == 3 && rooms.Groups[1] == folder && rooms.Items[1].Selected,
             "Refreshing the displayed source must reuse its folder and keep displaying refreshed content");
@@ -149,6 +176,7 @@ internal static class Program
         string newFirst = File.ReadAllText(first).Replace("Visible content regression", "Replacement export");
         File.WriteAllText(replacement, newFirst);
         File.Move(replacement, first, overwrite: true);
+        decisions.Enqueue((first, true));
         await (Task)Method("LoadFiles").Invoke(form, new object[] { new[] { first } })!;
         Expect(rooms.Groups.Count == 3 && rooms.Items[0].Text == "Replacement export" && rooms.Items[1].Selected,
             "A changed replacement must refresh its source folder without switching away from another open conversation");

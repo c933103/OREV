@@ -1,4 +1,4 @@
-# OpenRouter Export Viewer 0.1.5
+# OpenRouter Export Viewer 0.1.6
 
 A portable Windows native application for OpenRouter `orpg.3.0` chat exports.
 
@@ -26,7 +26,7 @@ The native file picker opens immediately. Choose one or more bulk or individual 
 ## Browse
 
 - The left pane groups conversations into collapsible folders, one per source JSON file. When filenames match, the folder headings use distinct numbers and show their directories. Hover over a conversation to see its full source path.
-- Use **Add exports** to reopen a file after editing or replacing it. OREV compares the contents. Identical files keep their checks and the open conversation. A changed, valid file refreshes the existing folder and clears that folder’s checks. A failed or cancelled refresh keeps the previously loaded version.
+- Use **Add exports** to reopen a file after editing or replacing it. For changed, valid content, OREV shows the file path and warns how many checks a refresh will clear. Choose **Refresh folder** to load it. The default, **Keep current version**, keeps the open conversation and checks. Identical files keep their existing state without a prompt. An invalid file leaves the previous version open.
 - Filter conversations across folders by title.
 - Click a conversation to read its messages. Parent links determine the reply order and indentation; model names identify parallel replies. “Go to parent” navigates to the parent message, including across pages.
 - Messages use native controls with basic Markdown formatting. Text, reasoning and tool bodies are visible by default. Reasoning/tool sections can be collapsed. Nested tool queries, results, source titles, URLs and errors are rendered as readable fields. HTML is never executed.

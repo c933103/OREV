@@ -41,9 +41,14 @@ public sealed class MainForm : Form
     bool busy, filtering;
     CancellationTokenSource? previewCancel;
     readonly List<(JNode Node, PictureBox Picture, Label Label, Archive Archive)> imageQueue = new();
+    readonly Func<IWin32Window, TaskDialogPage, TaskDialogButton> showRefreshWarning;
     int page;
-    public MainForm(string[] initialPaths)
+    public MainForm(string[] initialPaths) : this(initialPaths,
+        (owner, dialog) => TaskDialog.ShowDialog(owner, dialog, TaskDialogStartupLocation.CenterOwner)) { }
+
+    MainForm(string[] initialPaths, Func<IWin32Window, TaskDialogPage, TaskDialogButton> showRefreshWarning)
     {
+        this.showRefreshWarning = showRefreshWarning;
         Text = "OpenRouter Export Viewer";
         StartPosition = FormStartPosition.CenterScreen; Size = new(1320, 900); MinimumSize = new(920, 620);
         Font = new("Segoe UI", 10); ForeColor = ink; BackColor = canvas;
@@ -136,6 +141,7 @@ public sealed class MainForm : Form
         var failures = new List<string>();
         int duplicates = 0;
         int refreshed = 0;
+        int kept = 0;
         ListViewGroup? preferredFolder = null;
         bool cancelled = false;
         try
@@ -167,6 +173,16 @@ public sealed class MainForm : Form
                     if (loaded == null) { duplicates++; continue; }
                     if (existing != null)
                     {
+                        bool approved = false;
+                        try
+                        {
+                            bool confirmed = ConfirmRefresh(existing, loaded.Path);
+                            token.Token.ThrowIfCancellationRequested();
+                            approved = confirmed;
+                        }
+                        finally { if (!approved) loaded.Dispose(); }
+                        if (!approved) { kept++; continue; }
+
                         sources[existing.Order] = existing with { Archive = loaded };
                         checks.RemoveWhere(conversation => conversation.Source == existing);
                         if (current?.Source == existing)
@@ -220,6 +236,7 @@ public sealed class MainForm : Form
             string summary = $"{sources.Sum(s => (long)s.Archive.Rooms.Count):N0} conversations in {sources.Count:N0} exports";
             if (duplicates > 0) summary += $" • {duplicates:N0} unchanged";
             if (refreshed > 0) summary += $" • {refreshed:N0} refreshed (checks reset in those folders)";
+            if (kept > 0) summary += $" • {kept:N0} current versions kept";
             if (failures.Count > 0) summary += $" • {failures.Count:N0} failed";
             if (cancelled) summary += " • Loading cancelled";
             operation = null;
@@ -233,6 +250,30 @@ public sealed class MainForm : Form
                 "Could not open some exports", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
+    bool ConfirmRefresh(LoadedExport source, string path)
+    {
+        int checkedCount = checks.Count(conversation => conversation.Source == source);
+        string message = $"Refresh this folder with the updated file?\n\n{path}";
+        if (checkedCount == 1)
+            message += "\n\nRefreshing clears 1 checked conversation in this folder.";
+        else if (checkedCount > 1)
+            message += $"\n\nRefreshing clears {checkedCount:N0} checked conversations in this folder.";
+
+        var keep = new TaskDialogButton("Keep current version");
+        var refresh = new TaskDialogButton("Refresh folder");
+        var dialog = new TaskDialogPage
+        {
+            Caption = "Confirm export refresh",
+            Heading = "This export has changed",
+            Text = message,
+            Icon = TaskDialogIcon.Warning,
+            AllowCancel = true,
+            Buttons = { keep, refresh },
+            DefaultButton = keep
+        };
+        return showRefreshWarning(this, dialog) == refresh;
+    }
+
     void Filter()
     {
         var selected = rooms.SelectedItems.Cast<ListViewItem>().Select(item => item.Tag).ToHashSet();
