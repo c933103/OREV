@@ -129,6 +129,28 @@ try
     string Wrap(string room) => "{\"version\":\"orpg.3.0\",\"rooms\":[" + room + "]}";
     File.WriteAllText(edge, Wrap(RoomBody()));
     using (var a = Archive.Open(edge)) { Check(a.Rooms.Count == 1 && a.Rooms[0].Thread.Count == 0, "empty conversation and Unicode escapes"); }
+    string originalRoom = Wrap(RoomBody().Replace("Test ", "Old title "));
+    File.WriteAllText(edge, originalRoom);
+    using (var original = Archive.OpenSnapshot(edge)!)
+    {
+        using var unchanged = Archive.OpenSnapshot(edge, original.SnapshotDigest);
+        Check(unchanged == null, "identical reimport detected by content");
+        File.WriteAllText(edge, originalRoom.Replace("Old title", "New title"));
+        using var edited = Archive.OpenSnapshot(edge, original.SnapshotDigest)!;
+        Check(edited.Rooms[0].Title.StartsWith("New title ") && original.Rooms[0].Title.StartsWith("Old title "),
+            "in-place edit makes a new snapshot and leaves the previous snapshot readable");
+
+        string replacement = Path.Combine(folder, "replacement.json");
+        File.WriteAllText(replacement, "{");
+        File.Move(replacement, edge, true);
+        bool rejected = false;
+        try { using var invalid = Archive.OpenSnapshot(edge, edited.SnapshotDigest); }
+        catch (FormatException) { rejected = true; }
+        string output = Path.Combine(folder, "previous-version.json");
+        edited.Export(edited.Rooms[0], output);
+        Check(rejected && JsonNode.Parse(File.ReadAllText(output))!["title"]!.GetValue<string>().StartsWith("New title "),
+            "invalid replacement leaves the prior snapshot exportable");
+    }
     var bad = new[] { "{", Wrap(RoomBody()) + "x", "{\"version\":\"other\"}", "{\"version\":\"orpg.3.0\",\"version\":\"orpg.3.0\"}", Wrap(RoomBody()).Replace("1.25e-3", "01"), Wrap(RoomBody()).Replace("1.25e-3", "1."), Wrap(RoomBody()).Replace("1.25e-3", "1e+") };
     foreach (string value in bad)
     {
@@ -166,7 +188,7 @@ try
             f.Write(Encoding.UTF8.GetBytes("\"}}}}]}"));
         }
         GC.Collect(); var watch = Stopwatch.StartNew();
-        using var a = Archive.Open(huge); double indexed = watch.Elapsed.TotalSeconds;
+        using var a = Archive.OpenSnapshot(huge)!; double indexed = watch.Elapsed.TotalSeconds;
         long managed = GC.GetTotalMemory(true); long peak = Process.GetCurrentProcess().PeakWorkingSet64;
         Check(a.Rooms.Count == 1 && a.Size > 1073741824L, "1 GiB archive indexed");
         Check(managed < 100 * 1048576L, "managed index remains below 100 MiB on 1 GiB input");
@@ -176,7 +198,7 @@ try
         var splitBlob = split.Rooms[0].Node["items"]!["blob"]!["data"]!["result"]!;
         using var first = a.Raw(blob); using var second = split.Raw(splitBlob);
         Check(SHA256.HashData(first).SequenceEqual(SHA256.HashData(second)), "1 GiB base64 payload preserved byte-for-byte in individual export");
-        Console.WriteLine($"BENCHMARK: index={indexed:F2}s; index/export/reindex/hash={watch.Elapsed.TotalSeconds:F2}s; managed={managed / 1048576.0:F1}MiB; peak working set at index={peak / 1048576.0:F1}MiB");
+        Console.WriteLine($"BENCHMARK: snapshot/index={indexed:F2}s; snapshot/index/export/reindex/hash={watch.Elapsed.TotalSeconds:F2}s; managed={managed / 1048576.0:F1}MiB; peak working set at index={peak / 1048576.0:F1}MiB");
     }
     if (args.Contains("--compat"))
     {

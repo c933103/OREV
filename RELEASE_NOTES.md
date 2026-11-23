@@ -1,8 +1,7 @@
-Portable Windows x64 build of OpenRouter Export Viewer 0.1.4. Extract the ZIP and launch **OpenRouter Export Viewer.exe**.
+Portable Windows x64 build of OpenRouter Export Viewer 0.1.5. Extract the ZIP and launch **OpenRouter Export Viewer.exe**.
 
-- Open multiple OpenRouter JSON exports at once, or add more during the session without losing your place or checked conversations.
-- Browse each source JSON in its own collapsible folder. Files with matching names have numbered labels and display their source directories. Hover over a conversation to see the full source path.
-- Export conversations from several folders at once. Each file is written from its original source, with numeric suffixes when output names collide.
-- Distributed under OREV Community License 1.1. Schedule A.1(a) expressly lists the government of the People's Republic of China.
+- Reopen the same JSON path with **Add exports** after editing the file or replacing it. Changed, valid content refreshes the existing folder. Identical content keeps the current selection and checks.
+- Failed or cancelled refreshes leave the prior version available. A successful refresh resets checks only in the refreshed folder.
+- The viewer uses temporary local copies to keep conversations stable while originals change. Allow disk space for the open exports and the incoming file during reimport.
 
-The Windows package includes the source, license, and third-party notices. This is an unsigned build.
+The Windows package includes the source, the OREV Community License 1.1, and third-party notices. This is an unsigned build.

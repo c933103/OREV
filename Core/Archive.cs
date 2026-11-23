@@ -30,11 +30,80 @@ public sealed class Archive : IDisposable
     public string Version { get; private set; } = "";
     public List<Room> Rooms { get; } = new();
     public bool Bulk { get; private set; }
-    Archive(string path) { Path = path; file = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1024, FileOptions.RandomAccess); }
+    public string? SnapshotDigest { get; private init; }
+    Archive(string path, FileStream input) { Path = path; file = input; }
     public static Archive Open(string path, CancellationToken token = default, IProgress<int>? progress = null)
     {
-        var a = new Archive(path);
+        var a = new Archive(path, new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+            1024 * 1024, FileOptions.RandomAccess));
         try { a.Load(token, progress); return a; } catch { a.Dispose(); throw; }
+    }
+
+    // Read from a private, stable snapshot so JSON byte offsets remain valid if the original changes.
+    // A matching digest means the caller can keep its existing archive and selection.
+    public static Archive? OpenSnapshot(string path, string? previousDigest = null,
+        CancellationToken token = default, IProgress<int>? progress = null)
+    {
+        token.ThrowIfCancellationRequested();
+        const int bufferSize = 1024 * 1024;
+        var options = new FileStreamOptions
+        {
+            Mode = FileMode.CreateNew,
+            Access = FileAccess.ReadWrite,
+            Share = FileShare.None,
+            BufferSize = bufferSize,
+            Options = FileOptions.DeleteOnClose | FileOptions.RandomAccess
+        };
+        if (!OperatingSystem.IsWindows())
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        string snapshotPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"orev-{Guid.NewGuid():N}.tmp");
+        var snapshot = new FileStream(snapshotPath, options);
+        try
+        {
+            using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            using (var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete,
+                bufferSize, FileOptions.SequentialScan))
+            {
+                var buffer = new byte[bufferSize];
+                long size = Math.Max(1, source.Length);
+                long copied = 0;
+                int lastPercent = -1;
+                while (true)
+                {
+                    token.ThrowIfCancellationRequested();
+                    int count = source.Read(buffer);
+                    if (count == 0) break;
+                    snapshot.Write(buffer.AsSpan(0, count));
+                    sha.AppendData(buffer.AsSpan(0, count));
+                    copied += count;
+                    int percent = (int)(50.0 * Math.Min(copied, size) / size);
+                    if (percent != lastPercent) progress?.Report(lastPercent = percent);
+                }
+            }
+            token.ThrowIfCancellationRequested();
+            string digest = Convert.ToHexString(sha.GetHashAndReset());
+            if (digest == previousDigest)
+            {
+                snapshot.Dispose();
+                return null;
+            }
+            snapshot.Flush();
+            snapshot.Position = 0;
+            var archive = new Archive(path, snapshot) { SnapshotDigest = digest };
+            archive.Load(token, progress == null ? null : new SnapshotIndexProgress(progress));
+            token.ThrowIfCancellationRequested();
+            return archive;
+        }
+        catch
+        {
+            snapshot.Dispose();
+            throw;
+        }
+    }
+
+    sealed class SnapshotIndexProgress(IProgress<int> progress) : IProgress<int>
+    {
+        public void Report(int value) => progress.Report(50 + value / 2);
     }
     void Load(CancellationToken token, IProgress<int>? progress)
     {

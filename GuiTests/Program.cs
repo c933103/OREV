@@ -61,6 +61,7 @@ internal static class Program
                 }
                 Console.WriteLine("PASS: " + boxes.Length + " nonempty native text controls visible without parent clipping");
                 await CheckSourceFolders(form, first, second, third, scratch);
+                await CheckSamePathRefresh(form, first, second, scratch);
                 File.WriteAllText(prefix + ".result", "PASS");
             }
             catch (Exception e) { Console.WriteLine(e.ToString()); Environment.ExitCode = 1; }
@@ -114,6 +115,48 @@ internal static class Program
         foreach (var room in expected)
             Expect(body.Any(output => JsonNode.DeepEquals(room, output)), "Export must preserve the correct source's room fields");
         Console.WriteLine("PASS: accumulated export folders, duplicate filenames, source-specific display and cross-folder exports");
+    }
+    static async Task CheckSamePathRefresh(MainForm form, string first, string second, string scratch)
+    {
+        var rooms = (ListView)Get(form, "rooms")!;
+        var feed = (FlowLayoutPanel)Get(form, "feed")!;
+        ((TextBox)Get(form, "search")!).Clear();
+        rooms.Items[1].Selected = true;
+        ListViewGroup folder = rooms.Groups[1];
+        string original = File.ReadAllText(second);
+        string edited = original.Replace("Message from the second export", "Changed from the second export");
+        long size = new FileInfo(second).Length;
+        DateTime stamp = File.GetLastWriteTimeUtc(second);
+        File.WriteAllText(second, edited);
+        File.SetLastWriteTimeUtc(second, stamp);
+        Expect(new FileInfo(second).Length == size && File.GetLastWriteTimeUtc(second) == stamp,
+            "The in-place edit must preserve length and timestamp to test content-based refresh");
+        await (Task)Method("LoadFiles").Invoke(form, new object[] { new[] { second } })!;
+        Expect(rooms.Groups.Count == 3 && rooms.Groups[1] == folder && rooms.Items[1].Selected,
+            "Refreshing the displayed source must reuse its folder and keep displaying refreshed content");
+        Expect(Descendants(feed).OfType<RichTextBox>().Any(box => box.Text.Trim() == "Changed from the second export"),
+            "The same-length, same-timestamp edit must update the visible message");
+        Expect(!rooms.Items[1].Checked && rooms.Items[0].Checked && rooms.Items[2].Checked,
+            "Only checks from the refreshed source must reset");
+
+        rooms.Items[1].Checked = true;
+        string replacement = Path.Combine(scratch, "replacement.json");
+        File.Copy(second, replacement);
+        File.Move(replacement, second, overwrite: true);
+        await (Task)Method("LoadFiles").Invoke(form, new object[] { new[] { second } })!;
+        Expect(rooms.Items[1].Checked && rooms.Groups.Count == 3, "An identical file replacement must keep existing checks");
+
+        string newFirst = File.ReadAllText(first).Replace("Visible content regression", "Replacement export");
+        File.WriteAllText(replacement, newFirst);
+        File.Move(replacement, first, overwrite: true);
+        await (Task)Method("LoadFiles").Invoke(form, new object[] { new[] { first } })!;
+        Expect(rooms.Groups.Count == 3 && rooms.Items[0].Text == "Replacement export" && rooms.Items[1].Selected,
+            "A changed replacement must refresh its source folder without switching away from another open conversation");
+        string destination = Directory.CreateDirectory(Path.Combine(scratch, "refreshed")).FullName;
+        Method("ExportConversation").Invoke(null, new[] { rooms.Items[0].Tag, destination, CancellationToken.None });
+        Expect(File.ReadAllText(Directory.GetFiles(destination, "*.json").Single()) == newFirst,
+            "Export must read the refreshed bytes from an atomically replaced file");
+        Console.WriteLine("PASS: same-path refresh after in-place edits, identical and changed replacements, and updated exports");
     }
     static void Expect(bool condition, string message) { if (!condition) throw new Exception(message); }
     static MethodInfo Method(string name) => typeof(MainForm).GetMethod(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic)!;
