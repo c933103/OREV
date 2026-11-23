@@ -1,4 +1,4 @@
-# OpenRouter Export Viewer 0.1.4
+# OpenRouter Export Viewer 0.1.5
 
 A portable Windows native application for OpenRouter `orpg.3.0` chat exports.
 
@@ -25,7 +25,8 @@ The native file picker opens immediately. Choose one or more bulk or individual 
 
 ## Browse
 
-- The left pane groups conversations into collapsible folders, one per source JSON file. When filenames match, the folder headings use distinct numbers and show their directories. Hover over a conversation to see its full source path. Opening the same full path again skips the duplicate.
+- The left pane groups conversations into collapsible folders, one per source JSON file. When filenames match, the folder headings use distinct numbers and show their directories. Hover over a conversation to see its full source path.
+- Use **Add exports** to reopen a file after editing or replacing it. OREV compares the contents. Identical files keep their checks and the open conversation. A changed, valid file refreshes the existing folder and clears that folder’s checks. A failed or cancelled refresh keeps the previously loaded version.
 - Filter conversations across folders by title.
 - Click a conversation to read its messages. Parent links determine the reply order and indentation; model names identify parallel replies. “Go to parent” navigates to the parent message, including across pages.
 - Messages use native controls with basic Markdown formatting. Text, reasoning and tool bodies are visible by default. Reasoning/tool sections can be collapsed. Nested tool queries, results, source titles, URLs and errors are rendered as readable fields. HTML is never executed.
@@ -37,7 +38,7 @@ The native file picker opens immediately. Choose one or more bulk or individual 
 
 ## Export
 
-Check conversations across any of the open folders and click **Export checked**. Alternatively, select rows with Ctrl/Shift and use **Export selected** when no boxes are checked. Check all applies to the current filtered list, including collapsed folders. Previous checks remain selected across filtering and when adding exports.
+Check conversations across any of the open folders and click **Export checked**. Alternatively, select rows with Ctrl/Shift and use **Export selected** when no boxes are checked. Check all applies to the current filtered list, including collapsed folders. Previous checks remain selected across filtering and when adding new exports.
 
 Choose an output folder. Each selected room becomes an individual JSON file with `version: "orpg.3.0"`, `title`, `characters`, `messages`, `items`, all artifact maps, and any additional room fields. Unknown fields, model catalog snapshots, IDs, parent links, reasoning, tools and embedded attachment strings remain intact. Existing filenames receive numeric suffixes. Incomplete output files are removed after cancellation or error; already completed files remain.
 
@@ -45,7 +46,7 @@ This transformation matches the single-room export structure. Actual OpenRouter 
 
 ## Large files and privacy
 
-The scanner indexes byte ranges instead of allocating base64 strings or a DOM of all text. Export copies the original JSON values directly from the source file. No network client, telemetry, API integration or automatic remote media fetching is included. Keep the original JSON available while browsing: the app reads values from it on demand and holds it read-locked on Windows.
+OREV streams each export to a private local temporary file and indexes byte ranges without allocating full base64 strings in memory. This keeps the displayed version stable while another app edits or replaces the original. The original can be updated as soon as copying finishes. OREV reads previews and exports from its loaded copy and deletes the copy when it refreshes the folder or closes. Allow temporary disk space equal to the open files' combined size, plus the incoming file during reimport. No network client, telemetry, API integration or automatic remote media fetching is included.
 
 Index memory depends on the total number of JSON fields and messages across open files. JSON nesting is limited to 128 levels and the index to eight million nodes per file. The parser supports UTF-8 JSON and an optional UTF-8 BOM.
 

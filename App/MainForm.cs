@@ -133,11 +133,10 @@ public sealed class MainForm : Form
         operation = token;
         progress.Value = 0;
         SetBusy(true, "Indexing exports…");
-        var knownPaths = sources.GroupBy(source => source.Archive.Path, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Select(source => source.Archive.Path).ToList(),
-                StringComparer.OrdinalIgnoreCase);
         var failures = new List<string>();
         int duplicates = 0;
+        int refreshed = 0;
+        ListViewGroup? preferredFolder = null;
         bool cancelled = false;
         try
         {
@@ -149,26 +148,42 @@ public sealed class MainForm : Form
                 try
                 {
                     string path = Path.GetFullPath(input);
-                    knownPaths.TryGetValue(path, out var similarPaths);
-                    if (similarPaths?.Contains(path, StringComparer.Ordinal) == true) { duplicates++; continue; }
                     string name = Path.GetFileName(path);
                     var reports = new Progress<int>(n =>
                     {
                         if (operation != token) return;
                         progress.Value = (int)((index * 100L + n) / paths.Length);
-                        state.Text = $"Indexing {name} ({index + 1:N0}/{paths.Length:N0}) — {n}%";
+                        state.Text = $"Loading {name} ({index + 1:N0}/{paths.Length:N0}) — {n}%";
                     });
-                    Archive? loaded = await Task.Run(() =>
+                    var (existing, loaded) = await Task.Run(() =>
                     {
+                        var match = sources.Find(source => source.Archive.Path == path);
                         // Windows storage can be case-sensitive, so casing alone cannot prove a duplicate.
-                        if (similarPaths?.Any(previous => WindowsFileIdentity.SameFile(previous, path)) == true) return null;
-                        return Archive.Open(path, token.Token, reports);
+                        match ??= sources.Find(source =>
+                            string.Equals(source.Archive.Path, path, StringComparison.OrdinalIgnoreCase) &&
+                            WindowsFileIdentity.SameFile(source.Archive.Path, path));
+                        return (match, Archive.OpenSnapshot(path, match?.Archive.SnapshotDigest, token.Token, reports));
                     });
                     if (loaded == null) { duplicates++; continue; }
+                    if (existing != null)
+                    {
+                        sources[existing.Order] = existing with { Archive = loaded };
+                        checks.RemoveWhere(conversation => conversation.Source == existing);
+                        if (current?.Source == existing)
+                        {
+                            preferredFolder = existing.Folder;
+                            ClearFeed();
+                            metaTree.Nodes.Clear();
+                            metaValue.Clear();
+                            current = null;
+                            page = 0;
+                        }
+                        existing.Archive.Dispose();
+                        refreshed++;
+                        continue;
+                    }
                     var folder = new ListViewGroup(name) { CollapsedState = ListViewGroupCollapsedState.Expanded };
                     sources.Add(new(loaded, folder, sources.Count));
-                    if (similarPaths == null) knownPaths.Add(path, new() { path });
-                    else similarPaths.Add(path);
                     rooms.Groups.Add(folder);
                 }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException or ArgumentException or NotSupportedException or System.Text.Json.JsonException or System.Security.SecurityException)
@@ -193,14 +208,18 @@ public sealed class MainForm : Form
                 }
             }
             Filter();
-            if (current == null && rooms.Items.Count > 0)
+            if (current == null)
             {
-                current = (Conversation)rooms.Items[0].Tag!;
-                rooms.Items[0].Selected = true;
+                var items = rooms.Items.Cast<ListViewItem>();
+                var item = items.FirstOrDefault(row => row.Group == preferredFolder)
+                    ?? rooms.SelectedItems.Cast<ListViewItem>().FirstOrDefault() ?? items.FirstOrDefault();
+                current = item?.Tag as Conversation;
+                if (item != null) item.Selected = true;
                 RenderRoom();
             }
             string summary = $"{sources.Sum(s => (long)s.Archive.Rooms.Count):N0} conversations in {sources.Count:N0} exports";
-            if (duplicates > 0) summary += $" • {duplicates:N0} already open";
+            if (duplicates > 0) summary += $" • {duplicates:N0} unchanged";
+            if (refreshed > 0) summary += $" • {refreshed:N0} refreshed (checks reset in those folders)";
             if (failures.Count > 0) summary += $" • {failures.Count:N0} failed";
             if (cancelled) summary += " • Loading cancelled";
             operation = null;
@@ -210,7 +229,8 @@ public sealed class MainForm : Form
         {
             string details = string.Join("\n\n", failures.Take(5));
             if (failures.Count > 5) details += $"\n\nAnd {failures.Count - 5:N0} other files.";
-            MessageBox.Show(this, details, "Could not open some exports", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, details + "\n\nPreviously loaded versions of failed files are still open.",
+                "Could not open some exports", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
     void Filter()
@@ -468,10 +488,20 @@ public sealed class MainForm : Form
                 return;
             }
             string temp = path + "." + Guid.NewGuid().ToString("N") + ".partial";
+            string[] sourcePaths = sources.Select(source => source.Archive.Path).ToArray();
             using var token = new CancellationTokenSource(); operation = token; SetBusy(true, "Saving attachment…"); progress.Style = ProgressBarStyle.Marquee;
             try
             {
-                await Task.Run(() => { using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write)) a.DecodeAttachment(node, output, token.Token); token.Token.ThrowIfCancellationRequested(); File.Move(temp, path, true); });
+                await Task.Run(() =>
+                {
+                    using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write))
+                        a.DecodeAttachment(node, output, token.Token);
+                    token.Token.ThrowIfCancellationRequested();
+                    // The originals are no longer locked after import. Protect aliases as well as exact paths.
+                    if (File.Exists(path) && sourcePaths.Any(source => WindowsFileIdentity.SameFile(path, source)))
+                        throw new IOException("Choose a path other than an open export.");
+                    File.Move(temp, path, true);
+                });
                 state.Text = "Saved attachment to " + path;
             }
             catch (OperationCanceledException) { state.Text = "Attachment save cancelled."; }
