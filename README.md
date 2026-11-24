@@ -1,4 +1,4 @@
-# OpenRouter Export Viewer 0.1.6
+# OpenRouter Export Viewer 0.1.7
 
 A portable Windows native application for OpenRouter `orpg.3.0` chat exports.
 
@@ -21,7 +21,11 @@ Download the Windows x64 ZIP from [Releases](https://github.com/c933103/OREV/rel
 
 Extract the ZIP and double-click **OpenRouter Export Viewer.exe**. No installer, Python, browser, API key, or separately installed .NET runtime is needed. This build targets **Windows 10/11, x64**. The single executable extracts its bundled runtime/native libraries into the normal .NET temporary cache on first launch.
 
-The native file picker opens immediately. Choose one or more bulk or individual JSON exports. Use **Add exports** later, drag files onto the window, or pass multiple JSON paths on the command line. New files join the exports already open in that window. If an import fails or is cancelled, the files already loaded remain available.
+The native file picker opens when there is no saved session. Choose one or more bulk or individual JSON exports. Use **Add exports** later, drag files onto the window, or pass multiple JSON paths on the command line. New files join the exports already open in that window. If an import fails or is cancelled, the files already loaded remain available.
+
+OREV autosaves open file paths, checked and selected conversations, the active conversation and page, the title filter, and the metadata panel setting. It restores them when it starts. The state lives in `%LOCALAPPDATA%\OREV\session.json` and contains file references and viewer settings. Chat contents and images are read again from the original exports. You can clear the saved state with **Session → Start new session**.
+
+If a source file changed since the session was saved, OREV asks whether to open the updated version and clears that file’s old checks if you accept. Missing or skipped sources stay in the saved session for retry. Use **Add exports** once the file is available again.
 
 ## Browse
 
