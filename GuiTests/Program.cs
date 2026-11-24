@@ -206,6 +206,45 @@ internal static class Program
 
         File.WriteAllText(second, File.ReadAllText(second).Replace("Changed from", "Updated from"));
         decisions.Enqueue((second, false));
+        WithRestoredWindow(form, sessionPath, showWarning, async restored =>
+        {
+            var rooms = (ListView)Get(restored, "rooms")!;
+            Expect(rooms.Groups.Count == 2 && rooms.Items.Count == 1 &&
+                rooms.Items[0].Checked && rooms.Items[0].Selected &&
+                (int)Get(restored, "page")! == 1 && ((ToolStripButton)Get(restored, "metadata")!).Checked,
+                "Restore must recover available folders, filter, current page, selection, checks and metadata visibility");
+            Expect(((Array)Method("ChosenConversations").Invoke(restored, null)!).Length == 1,
+                "Declined changed exports must stay out of the current checked selection");
+
+            decisions.Enqueue((second, true));
+            await (Task)Method("LoadFiles").Invoke(restored, new object[] { new[] { second } })!;
+            ((TextBox)Get(restored, "search")!).Clear();
+            Expect(rooms.Groups.Count == 3 && !rooms.Items.Cast<ListViewItem>().Single(item =>
+                item.ToolTipText.EndsWith(second, StringComparison.Ordinal)).Checked,
+                "Reopening a skipped changed export must ask again and never apply the old checks");
+        });
+
+        string original = File.ReadAllText(third);
+        File.WriteAllText(third, original.Replace("Bulk folder conversation", "Changed bulk conversation"));
+        decisions.Enqueue((third, false));
+        WithRestoredWindow(form, sessionPath, showWarning, restored => Task.CompletedTask);
+
+        File.WriteAllText(third, original);
+        WithRestoredWindow(form, sessionPath, showWarning, restored =>
+        {
+            var rooms = (ListView)Get(restored, "rooms")!;
+            Expect(rooms.Groups.Count == 3 && (int)Get(restored, "page")! == 1 &&
+                rooms.Items.Cast<ListViewItem>().Single(item => item.ToolTipText.EndsWith(third, StringComparison.Ordinal)).Checked &&
+                ((Label)Get(restored, "heading")!).Text.StartsWith("Bulk folder conversation", StringComparison.Ordinal),
+                "A skipped source must recover its saved place once its previous contents are available again");
+            return Task.CompletedTask;
+        });
+        Expect(decisions.Count == 0, "All startup and re-add warnings must have been shown");
+        Console.WriteLine("PASS: session autosave, startup restore, and confirmation for changed exports");
+    }
+    static void WithRestoredWindow(MainForm owner, string sessionPath,
+        Func<IWin32Window, TaskDialogPage, TaskDialogButton> showWarning, Func<MainForm, Task> verify)
+    {
         using var restored = CreateForm([], showWarning, sessionPath);
         Exception? failure = null;
         restored.Shown += async (_, _) =>
@@ -214,28 +253,13 @@ internal static class Program
             {
                 for (int i = 0; i < 500 && !(bool)Get(restored, "sessionReady")!; i++) await Task.Delay(20);
                 Expect((bool)Get(restored, "sessionReady")!, "Saved session must finish reopening");
-                var rooms = (ListView)Get(restored, "rooms")!;
-                Expect(rooms.Groups.Count == 2 && rooms.Items.Count == 1 &&
-                    rooms.Items[0].Checked && rooms.Items[0].Selected &&
-                    (int)Get(restored, "page")! == 1 && ((ToolStripButton)Get(restored, "metadata")!).Checked,
-                    "Restore must recover available folders, filter, current page, selection, checks and metadata visibility");
-                Expect(((Array)Method("ChosenConversations").Invoke(restored, null)!).Length == 1,
-                    "Declined changed exports must stay out of the current checked selection");
-
-                decisions.Enqueue((second, true));
-                await (Task)Method("LoadFiles").Invoke(restored, new object[] { new[] { second } })!;
-                ((TextBox)Get(restored, "search")!).Clear();
-                Expect(rooms.Groups.Count == 3 && !rooms.Items.Cast<ListViewItem>().Single(item =>
-                    item.ToolTipText.EndsWith(second, StringComparison.Ordinal)).Checked,
-                    "Reopening a skipped changed export must ask again and never apply the old checks");
-                Expect(decisions.Count == 0, "All startup and re-add warnings must have been shown");
+                await verify(restored);
             }
             catch (Exception e) { failure = e; }
             finally { restored.Close(); }
         };
-        restored.ShowDialog(form);
+        restored.ShowDialog(owner);
         if (failure != null) throw failure;
-        Console.WriteLine("PASS: session autosave, startup restore, and confirmation for changed exports");
     }
     static MainForm CreateForm(string[] paths, Func<IWin32Window, TaskDialogPage, TaskDialogButton> showWarning, string sessionPath) =>
         (MainForm)Activator.CreateInstance(typeof(MainForm), BindingFlags.Instance | BindingFlags.NonPublic,

@@ -46,6 +46,7 @@ public sealed class MainForm : Form
     readonly string sessionPath;
     readonly System.Windows.Forms.Timer autosave = new() { Interval = 600 };
     readonly List<SavedExport> unavailable = new();
+    SavedPosition? pendingReadingPosition;
     bool sessionReady;
     bool sessionDirty;
     int page;
@@ -97,6 +98,7 @@ public sealed class MainForm : Form
                 rooms.SelectedItems[0].Tag is Conversation conversation && current != conversation)
             {
                 current = conversation;
+                pendingReadingPosition = null;
                 page = 0;
                 RenderRoom();
             }
@@ -104,8 +106,8 @@ public sealed class MainForm : Form
             if (!busy && !filtering) QueueSessionSave();
         };
         rooms.KeyDown += (_, e) => { if (e.Control && e.KeyCode == Keys.A) { foreach (ListViewItem item in rooms.Items) item.Selected = true; e.SuppressKeyPress = true; } };
-        previous.Click += (_, _) => { if (page > 0) { page--; RenderRoom(); } };
-        next.Click += (_, _) => { if (active != null && (page + 1) * PageSize < active.Thread.Count) { page++; RenderRoom(); } };
+        previous.Click += (_, _) => { if (page > 0) { pendingReadingPosition = null; page--; RenderRoom(); } };
+        next.Click += (_, _) => { if (active != null && (page + 1) * PageSize < active.Thread.Count) { pendingReadingPosition = null; page++; RenderRoom(); } };
         feed.SizeChanged += (_, _) => ResizeCards();
         heading.Click += (_, _) => { if (active != null) SetMetadata("Conversation metadata", active.Node); };
         metaTree.BeforeExpand += (_, e) => { if (e.Node != null) PopulateMetadata(e.Node); };
@@ -135,13 +137,15 @@ public sealed class MainForm : Form
     {
         ViewerSession saved;
         try { saved = ViewerSession.Read(sessionPath); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException)
         {
             saved = ViewerSession.Empty;
             MessageBox.Show(this, e.Message, "Could not restore the saved session", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
-        unavailable.AddRange(saved.Exports.DistinctBy(source => source.Path));
+        foreach (var source in saved.Exports.DistinctBy(source => source.Path))
+            unavailable.Add(saved.Position?.Path == source.Path ? source with { Position = saved.Position } : source);
+        if (unavailable.Any(source => source.Path == saved.Position?.Path)) pendingReadingPosition = saved.Position;
         search.Text = saved.Filter;
         metadata.Checked = saved.MetadataOpen;
         if (unavailable.Count > 0)
@@ -171,12 +175,13 @@ public sealed class MainForm : Form
                 .ToLookup(conversation => conversation.Source, conversation => conversation.Room.Number);
             var exports = sources.Select(source => new SavedExport(source.Archive.Path, source.Archive.SnapshotDigest!,
                 checkedRooms[source].Order().ToArray(), selectedRooms[source].Order().ToArray())).Concat(unavailable).ToArray();
-            var position = current == null ? null : new SavedPosition(current.Source.Archive.Path, current.Room.Number, page);
+            var position = pendingReadingPosition ??
+                (current == null ? null : new SavedPosition(current.Source.Archive.Path, current.Room.Number, page));
             (ViewerSession.Empty with { Exports = exports, Position = position, Filter = search.Text, MetadataOpen = metadata.Checked })
                 .Write(sessionPath);
             sessionDirty = false;
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             state.Text = "Could not autosave this session: " + e.Message;
         }
@@ -198,6 +203,7 @@ public sealed class MainForm : Form
         autosave.Stop();
         sessionDirty = false;
         current = null;
+        pendingReadingPosition = null;
         page = 0;
         checks.Clear();
         unavailable.Clear();
@@ -330,14 +336,16 @@ public sealed class MainForm : Form
                     if (remembered != null)
                     {
                         unavailable.Remove(remembered);
+                        if (pendingReadingPosition?.Path == remembered.Path) pendingReadingPosition = null;
                         if (matchesSession)
                         {
                             foreach (var number in remembered.Checked.Where(number => (uint)number < (uint)loaded.Rooms.Count))
                                 checks.Add(new(source, loaded.Rooms[number]));
                             foreach (var number in remembered.Selected.Where(number => (uint)number < (uint)loaded.Rooms.Count))
                                 restoredSelection.Add(new(source, loaded.Rooms[number]));
-                            if (savedPosition is { } position && position.Path == remembered.Path &&
-                                (uint)position.Room < (uint)loaded.Rooms.Count)
+                            if (remembered.Position is { } position && position.Path == remembered.Path &&
+                                (uint)position.Room < (uint)loaded.Rooms.Count &&
+                                (!restoreReading || position == savedPosition))
                             {
                                 current = new(source, loaded.Rooms[position.Room]);
                                 page = Math.Clamp(position.Page, 0, Math.Max(0, (current.Room.Thread.Count - 1) / PageSize));
@@ -626,6 +634,7 @@ public sealed class MainForm : Form
         if (active == null) return;
         int index = active.Thread.FindIndex(e => e.Message.Id == id);
         if (index < 0) { state.Text = "Parent message is absent from this export."; return; }
+        pendingReadingPosition = null;
         page = index / PageSize; RenderRoom();
         if (index % PageSize < feed.Controls.Count) feed.ScrollControlIntoView(feed.Controls[index % PageSize]);
     }

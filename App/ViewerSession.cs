@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace ExportViewer;
 
-sealed record SavedExport(string Path, string Digest, int[] Checked, int[] Selected);
+sealed record SavedExport(string Path, string Digest, int[] Checked, int[] Selected, SavedPosition? Position = null);
 sealed record SavedPosition(string Path, int Room, int Page);
 
 sealed record ViewerSession(int Version, SavedExport[] Exports, SavedPosition? Position, string Filter, bool MetadataOpen)
