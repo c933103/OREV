@@ -15,6 +15,7 @@ public sealed class MainForm : Form
     readonly Color canvas = Color.FromArgb(245, 246, 249), ink = Color.FromArgb(30, 35, 48);
     readonly ToolStrip tools = new() { GripStyle = ToolStripGripStyle.Hidden, Padding = new Padding(8), AutoSize = true };
     readonly ToolStripButton open = new("Add exports…"), export = new("Export selected…"), all = new("Check all"), none = new("Uncheck all"), metadata = new("Metadata") { CheckOnClick = true }, cancelButton = new("Cancel") { Visible = false };
+    readonly ToolStripDropDownButton sessionMenu = new("Session");
     readonly ListView rooms = new() { Dock = DockStyle.Fill, View = View.Details, CheckBoxes = true, MultiSelect = true, FullRowSelect = true, HideSelection = false, BorderStyle = BorderStyle.None, ShowItemToolTips = true, ShowGroups = true };
     readonly TextBox search = new() { Dock = DockStyle.Top, PlaceholderText = "Filter conversations by title…", BorderStyle = BorderStyle.FixedSingle };
     readonly SplitContainer layout = new() { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1, SplitterWidth = 5 };
@@ -42,17 +43,27 @@ public sealed class MainForm : Form
     CancellationTokenSource? previewCancel;
     readonly List<(JNode Node, PictureBox Picture, Label Label, Archive Archive)> imageQueue = new();
     readonly Func<IWin32Window, TaskDialogPage, TaskDialogButton> showRefreshWarning;
+    readonly string sessionPath;
+    readonly System.Windows.Forms.Timer autosave = new() { Interval = 600 };
+    readonly List<SavedExport> unavailable = new();
+    SavedPosition? pendingReadingPosition;
+    bool sessionReady;
+    bool sessionDirty;
     int page;
     public MainForm(string[] initialPaths) : this(initialPaths,
-        (owner, dialog) => TaskDialog.ShowDialog(owner, dialog, TaskDialogStartupLocation.CenterOwner)) { }
+        (owner, dialog) => TaskDialog.ShowDialog(owner, dialog, TaskDialogStartupLocation.CenterOwner),
+        ViewerSession.DefaultPath) { }
 
-    MainForm(string[] initialPaths, Func<IWin32Window, TaskDialogPage, TaskDialogButton> showRefreshWarning)
+    MainForm(string[] initialPaths, Func<IWin32Window, TaskDialogPage, TaskDialogButton> showRefreshWarning, string sessionPath)
     {
         this.showRefreshWarning = showRefreshWarning;
+        this.sessionPath = sessionPath;
         Text = "OpenRouter Export Viewer";
         StartPosition = FormStartPosition.CenterScreen; Size = new(1320, 900); MinimumSize = new(920, 620);
         Font = new("Segoe UI", 10); ForeColor = ink; BackColor = canvas;
-        tools.Items.AddRange(new ToolStripItem[] { open, new ToolStripSeparator(), all, none, export, new ToolStripSeparator(), metadata, cancelButton });
+        tools.Items.AddRange(new ToolStripItem[] { open, sessionMenu, new ToolStripSeparator(), all, none, export, new ToolStripSeparator(), metadata, cancelButton });
+        sessionMenu.DropDownItems.Add("Start new session…", null, (_, _) => StartNewSession());
+        autosave.Tick += (_, _) => { if (!busy) SaveSession(); };
         status.Items.AddRange(new ToolStripItem[] { state, progress });
         rooms.Columns.Add("Conversation", 265); rooms.Columns.Add("Turns", 60);
         layout.Panel1.Controls.Add(rooms); layout.Panel1.Controls.Add(search);
@@ -67,13 +78,19 @@ public sealed class MainForm : Form
         export.Click += async (_, _) => await ExportSelected();
         all.Click += (_, _) => SetChecks(true); none.Click += (_, _) => SetChecks(false);
         cancelButton.Click += (_, _) => operation?.Cancel();
-        metadata.CheckedChanged += (_, _) => { detail.Panel2Collapsed = !metadata.Checked; if (metadata.Checked) detail.SplitterDistance = Math.Max(250, detail.Width - 330); };
-        search.TextChanged += (_, _) => Filter();
+        metadata.CheckedChanged += (_, _) =>
+        {
+            detail.Panel2Collapsed = !metadata.Checked;
+            if (metadata.Checked) detail.SplitterDistance = Math.Max(250, detail.Width - 330);
+            QueueSessionSave();
+        };
+        search.TextChanged += (_, _) => { Filter(); QueueSessionSave(); };
         rooms.ItemChecked += (_, e) =>
         {
             if (filtering || e.Item.Tag is not Conversation conversation) return;
             if (e.Item.Checked) checks.Add(conversation); else checks.Remove(conversation);
             UpdateExport();
+            QueueSessionSave();
         };
         rooms.SelectedIndexChanged += (_, _) =>
         {
@@ -81,14 +98,16 @@ public sealed class MainForm : Form
                 rooms.SelectedItems[0].Tag is Conversation conversation && current != conversation)
             {
                 current = conversation;
+                pendingReadingPosition = null;
                 page = 0;
                 RenderRoom();
             }
             UpdateExport();
+            if (!busy && !filtering) QueueSessionSave();
         };
         rooms.KeyDown += (_, e) => { if (e.Control && e.KeyCode == Keys.A) { foreach (ListViewItem item in rooms.Items) item.Selected = true; e.SuppressKeyPress = true; } };
-        previous.Click += (_, _) => { if (page > 0) { page--; RenderRoom(); } };
-        next.Click += (_, _) => { if (active != null && (page + 1) * PageSize < active.Thread.Count) { page++; RenderRoom(); } };
+        previous.Click += (_, _) => { if (page > 0) { pendingReadingPosition = null; page--; RenderRoom(); } };
+        next.Click += (_, _) => { if (active != null && (page + 1) * PageSize < active.Thread.Count) { pendingReadingPosition = null; page++; RenderRoom(); } };
         feed.SizeChanged += (_, _) => ResizeCards();
         heading.Click += (_, _) => { if (active != null) SetMetadata("Conversation metadata", active.Node); };
         metaTree.BeforeExpand += (_, e) => { if (e.Node != null) PopulateMetadata(e.Node); };
@@ -97,13 +116,15 @@ public sealed class MainForm : Form
             if (current is { } conversation && e.Node?.Tag is JNode node)
                 metaValue.Text = conversation.Source.Archive.Text(node, 65536);
         };
-        Shown += async (_, _) =>
+        Shown += async (_, _) => await RestoreSession(initialPaths);
+        FormClosing += (_, e) =>
         {
-            if (initialPaths.Length > 0) await LoadFiles(initialPaths); else await PickFiles();
+            if (busy) { operation?.Cancel(); e.Cancel = true; state.Text = "Cancelling… close the window again when complete."; }
+            else SaveSession();
         };
-        FormClosing += (_, e) => { if (busy) { operation?.Cancel(); e.Cancel = true; state.Text = "Cancelling… close the window again when complete."; } };
         FormClosed += (_, _) =>
         {
+            autosave.Dispose();
             previewCancel?.Cancel();
             foreach (var source in sources) source.Archive.Dispose();
         };
@@ -111,6 +132,94 @@ public sealed class MainForm : Form
         DragEnter += (_, e) => { if (!busy && e.Data?.GetDataPresent(DataFormats.FileDrop) == true) e.Effect = DragDropEffects.Copy; };
         DragDrop += async (_, e) => { if (e.Data?.GetData(DataFormats.FileDrop) is string[] files) await LoadFiles(files); };
         ShowWelcome(); UpdateExport();
+    }
+    async Task RestoreSession(string[] initialPaths)
+    {
+        ViewerSession saved;
+        try { saved = ViewerSession.Read(sessionPath); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException)
+        {
+            saved = ViewerSession.Empty;
+            MessageBox.Show(this, e.Message, "Could not restore the saved session", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        foreach (var source in saved.Exports.DistinctBy(source => source.Path))
+            unavailable.Add(saved.Position?.Path == source.Path ? source with { Position = saved.Position } : source);
+        if (unavailable.Any(source => source.Path == saved.Position?.Path)) pendingReadingPosition = saved.Position;
+        search.Text = saved.Filter;
+        metadata.Checked = saved.MetadataOpen;
+        if (unavailable.Count > 0)
+            await LoadFilesCore(unavailable.Select(source => source.Path).ToArray(), saved.Position);
+        sessionReady = true;
+        if (saved.Exports.Length > 0) QueueSessionSave();
+        if (initialPaths.Length > 0) await LoadFiles(initialPaths);
+        else if (saved.Exports.Length == 0) await PickFiles();
+    }
+
+    void QueueSessionSave()
+    {
+        if (!sessionReady) return;
+        sessionDirty = true;
+        autosave.Stop();
+        autosave.Start();
+    }
+
+    void SaveSession()
+    {
+        autosave.Stop();
+        if (!sessionDirty) return;
+        try
+        {
+            var checkedRooms = checks.ToLookup(conversation => conversation.Source, conversation => conversation.Room.Number);
+            var selectedRooms = rooms.SelectedItems.Cast<ListViewItem>().Select(item => (Conversation)item.Tag!)
+                .ToLookup(conversation => conversation.Source, conversation => conversation.Room.Number);
+            var exports = sources.Select(source => new SavedExport(source.Archive.Path, source.Archive.SnapshotDigest!,
+                checkedRooms[source].Order().ToArray(), selectedRooms[source].Order().ToArray())).Concat(unavailable).ToArray();
+            var position = pendingReadingPosition ??
+                (current == null ? null : new SavedPosition(current.Source.Archive.Path, current.Room.Number, page));
+            (ViewerSession.Empty with { Exports = exports, Position = position, Filter = search.Text, MetadataOpen = metadata.Checked })
+                .Write(sessionPath);
+            sessionDirty = false;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            state.Text = "Could not autosave this session: " + e.Message;
+        }
+    }
+
+    void StartNewSession()
+    {
+        if (busy || MessageBox.Show(this, "Close the open export folders and clear the saved session?",
+            "Start new session", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.OK)
+            return;
+
+        try { ViewerSession.Empty.Write(sessionPath); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, e.Message, "Could not clear the saved session", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        sessionReady = false;
+        autosave.Stop();
+        sessionDirty = false;
+        current = null;
+        pendingReadingPosition = null;
+        page = 0;
+        checks.Clear();
+        unavailable.Clear();
+        ClearFeed();
+        metaTree.Nodes.Clear();
+        metaValue.Clear();
+        foreach (var source in sources) source.Archive.Dispose();
+        sources.Clear();
+        rooms.Items.Clear();
+        rooms.Groups.Clear();
+        search.Clear();
+        metadata.Checked = false;
+        RenderRoom();
+        state.Text = "Choose an OpenRouter export to begin";
+        UpdateExport();
+        sessionReady = true;
     }
     void ShowWelcome()
     {
@@ -127,11 +236,13 @@ public sealed class MainForm : Form
     }
     void SetBusy(bool value, string? text)
     {
-        busy = value; open.Enabled = all.Enabled = none.Enabled = search.Enabled = rooms.Enabled = !value;
+        busy = value; open.Enabled = sessionMenu.Enabled = all.Enabled = none.Enabled = search.Enabled = rooms.Enabled = !value;
         cancelButton.Visible = progress.Visible = value; previous.Enabled = !value && active != null && page > 0; next.Enabled = !value && active != null && (page + 1) * PageSize < active.Thread.Count;
         state.Text = text ?? ""; UpdateExport();
     }
-    async Task LoadFiles(string[] paths)
+    Task LoadFiles(string[] paths) => LoadFilesCore(paths);
+
+    async Task LoadFilesCore(string[] paths, SavedPosition? savedPosition = null)
     {
         if (busy || paths.Length == 0) return;
         using var token = new CancellationTokenSource();
@@ -142,6 +253,8 @@ public sealed class MainForm : Form
         int duplicates = 0;
         int refreshed = 0;
         int kept = 0;
+        var restoredSelection = new HashSet<Conversation>();
+        bool restoreReading = false;
         ListViewGroup? preferredFolder = null;
         bool cancelled = false;
         try
@@ -161,14 +274,18 @@ public sealed class MainForm : Form
                         progress.Value = (int)((index * 100L + n) / paths.Length);
                         state.Text = $"Loading {name} ({index + 1:N0}/{paths.Length:N0}) — {n}%";
                     });
-                    var (existing, loaded) = await Task.Run(() =>
+                    var (existing, remembered, loaded) = await Task.Run(() =>
                     {
                         var match = sources.Find(source => source.Archive.Path == path);
                         // Windows storage can be case-sensitive, so casing alone cannot prove a duplicate.
                         match ??= sources.Find(source =>
                             string.Equals(source.Archive.Path, path, StringComparison.OrdinalIgnoreCase) &&
                             WindowsFileIdentity.SameFile(source.Archive.Path, path));
-                        return (match, Archive.OpenSnapshot(path, match?.Archive.SnapshotDigest, token.Token, reports));
+                        var saved = unavailable.Find(source => source.Path == path);
+                        saved ??= unavailable.Find(source =>
+                            string.Equals(source.Path, path, StringComparison.OrdinalIgnoreCase) &&
+                            WindowsFileIdentity.SameFile(source.Path, path));
+                        return (match, saved, Archive.OpenSnapshot(path, match?.Archive.SnapshotDigest, token.Token, reports));
                     });
                     if (loaded == null) { duplicates++; continue; }
                     if (existing != null)
@@ -176,7 +293,8 @@ public sealed class MainForm : Form
                         bool approved = false;
                         try
                         {
-                            bool confirmed = ConfirmRefresh(existing, loaded.Path);
+                            int checkedCount = checks.Count(conversation => conversation.Source == existing);
+                            bool confirmed = ConfirmRefresh(loaded.Path, checkedCount);
                             token.Token.ThrowIfCancellationRequested();
                             approved = confirmed;
                         }
@@ -198,9 +316,43 @@ public sealed class MainForm : Form
                         refreshed++;
                         continue;
                     }
+                    bool matchesSession = remembered != null && remembered.Digest == loaded.SnapshotDigest;
+                    if (remembered != null && !matchesSession)
+                    {
+                        bool approved = false;
+                        try
+                        {
+                            bool confirmed = ConfirmRefresh(loaded.Path, remembered.Checked.Length, restoring: true);
+                            token.Token.ThrowIfCancellationRequested();
+                            approved = confirmed;
+                        }
+                        finally { if (!approved) loaded.Dispose(); }
+                        if (!approved) { kept++; continue; }
+                    }
                     var folder = new ListViewGroup(name) { CollapsedState = ListViewGroupCollapsedState.Expanded };
-                    sources.Add(new(loaded, folder, sources.Count));
+                    var source = new LoadedExport(loaded, folder, sources.Count);
+                    sources.Add(source);
                     rooms.Groups.Add(folder);
+                    if (remembered != null)
+                    {
+                        unavailable.Remove(remembered);
+                        if (pendingReadingPosition?.Path == remembered.Path) pendingReadingPosition = null;
+                        if (matchesSession)
+                        {
+                            foreach (var number in remembered.Checked.Where(number => (uint)number < (uint)loaded.Rooms.Count))
+                                checks.Add(new(source, loaded.Rooms[number]));
+                            foreach (var number in remembered.Selected.Where(number => (uint)number < (uint)loaded.Rooms.Count))
+                                restoredSelection.Add(new(source, loaded.Rooms[number]));
+                            if (remembered.Position is { } position && position.Path == remembered.Path &&
+                                (uint)position.Room < (uint)loaded.Rooms.Count &&
+                                (!restoreReading || position == savedPosition))
+                            {
+                                current = new(source, loaded.Rooms[position.Room]);
+                                page = Math.Clamp(position.Page, 0, Math.Max(0, (current.Room.Thread.Count - 1) / PageSize));
+                                restoreReading = true;
+                            }
+                        }
+                    }
                 }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException or ArgumentException or NotSupportedException or System.Text.Json.JsonException or System.Security.SecurityException)
                 {
@@ -223,7 +375,7 @@ public sealed class MainForm : Form
                     if (source.Folder.Header != header) source.Folder.Header = header;
                 }
             }
-            Filter();
+            Filter(restoredSelection);
             if (current == null)
             {
                 var items = rooms.Items.Cast<ListViewItem>();
@@ -233,34 +385,40 @@ public sealed class MainForm : Form
                 if (item != null) item.Selected = true;
                 RenderRoom();
             }
+            else if (restoreReading) RenderRoom();
             string summary = $"{sources.Sum(s => (long)s.Archive.Rooms.Count):N0} conversations in {sources.Count:N0} exports";
             if (duplicates > 0) summary += $" • {duplicates:N0} unchanged";
             if (refreshed > 0) summary += $" • {refreshed:N0} refreshed (checks reset in those folders)";
-            if (kept > 0) summary += $" • {kept:N0} current versions kept";
+            if (kept > 0) summary += $" • {kept:N0} updates skipped";
+            if (unavailable.Count > 0) summary += $" • {unavailable.Count:N0} saved exports pending";
             if (failures.Count > 0) summary += $" • {failures.Count:N0} failed";
             if (cancelled) summary += " • Loading cancelled";
             operation = null;
             SetBusy(false, summary);
+            QueueSessionSave();
         }
         if (failures.Count > 0)
         {
             string details = string.Join("\n\n", failures.Take(5));
             if (failures.Count > 5) details += $"\n\nAnd {failures.Count - 5:N0} other files.";
-            MessageBox.Show(this, details + "\n\nPreviously loaded versions of failed files are still open.",
+            string recovery = sessionReady ? "Any open folders are still available."
+                : "Unavailable exports stay in the saved session. Use Add exports to retry.";
+            MessageBox.Show(this, details + "\n\n" + recovery,
                 "Could not open some exports", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
-    bool ConfirmRefresh(LoadedExport source, string path)
+    bool ConfirmRefresh(string path, int checkedCount, bool restoring = false)
     {
-        int checkedCount = checks.Count(conversation => conversation.Source == source);
-        string message = $"Refresh this folder with the updated file?\n\n{path}";
+        string message = restoring
+            ? $"This file changed since the saved session. Open the updated file?\n\n{path}"
+            : $"Refresh this folder with the updated file?\n\n{path}";
         if (checkedCount == 1)
             message += "\n\nRefreshing clears 1 checked conversation in this folder.";
         else if (checkedCount > 1)
             message += $"\n\nRefreshing clears {checkedCount:N0} checked conversations in this folder.";
 
-        var keep = new TaskDialogButton("Keep current version");
-        var refresh = new TaskDialogButton("Refresh folder");
+        var keep = new TaskDialogButton(restoring ? "Skip file" : "Keep current version");
+        var refresh = new TaskDialogButton(restoring ? "Open updated file" : "Refresh folder");
         var dialog = new TaskDialogPage
         {
             Caption = "Confirm export refresh",
@@ -274,9 +432,10 @@ public sealed class MainForm : Form
         return showRefreshWarning(this, dialog) == refresh;
     }
 
-    void Filter()
+    void Filter(IEnumerable<Conversation>? restoredSelection = null)
     {
-        var selected = rooms.SelectedItems.Cast<ListViewItem>().Select(item => item.Tag).ToHashSet();
+        var selected = rooms.SelectedItems.Cast<ListViewItem>().Select(item => (Conversation)item.Tag!).ToHashSet();
+        if (restoredSelection != null) selected.UnionWith(restoredSelection);
         filtering = true;
         rooms.BeginUpdate();
         try
@@ -366,6 +525,7 @@ public sealed class MainForm : Form
     }
     void RenderRoom()
     {
+        QueueSessionSave();
         ClearFeed();
         if (current == null || active == null) { ShowWelcome(); previous.Enabled = next.Enabled = false; pageLabel.Text = ""; return; }
         heading.Text = active.Title + $"\n{active.Thread.Count:N0} messages • {active.Node.Length / 1048576.0:N2} MiB" + (active.BrokenLinks > 0 ? $" • {active.BrokenLinks} missing/cyclic parent links (all messages shown)" : "");
@@ -474,6 +634,7 @@ public sealed class MainForm : Form
         if (active == null) return;
         int index = active.Thread.FindIndex(e => e.Message.Id == id);
         if (index < 0) { state.Text = "Parent message is absent from this export."; return; }
+        pendingReadingPosition = null;
         page = index / PageSize; RenderRoom();
         if (index % PageSize < feed.Controls.Count) feed.ScrollControlIntoView(feed.Controls[index % PageSize]);
     }
